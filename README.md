@@ -23,11 +23,6 @@ tests/         smoke tests per module
 docs/          paper notes, decisions, milestone requirements and status
 ```
 
-## Roles
-
-Module ownership is in [CLAUDE.md](CLAUDE.md); the split for each milestone is in
-`docs/milestones/msN/plan.md`. Changes to someone else's module go through them.
-
 ## Setup
 
 ```bash
