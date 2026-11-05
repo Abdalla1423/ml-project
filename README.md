@@ -11,12 +11,12 @@ observational data, in context.
 ```
 src/dopfn/
   common/      shared helpers (seeding, config loading)
-  data/        prior with treatment + do(t), load_data, case studies      (Person A)
-  model/       transformer, bar distribution, loss, adapter, Regressor    (Person B)
-  training/    pre-training loop, checkpoints                             (Person B)
-  baselines/   simple and CATE baselines                                  (Person C)
-  evaluation/  metrics, evaluation harness                                (Person C)
-  viz/         show()                                                     (Person C)
+  data/        prior with treatment + do(t), load_data, case studies
+  model/       transformer, bar distribution, loss, adapter, Regressor
+  training/    pre-training loop, checkpoints
+  baselines/   simple and CATE baselines
+  evaluation/  metrics, evaluation harness
+  viz/         show()
 scripts/       command-line entry points
 configs/       YAML configs (data/, train/, eval/)
 tests/         smoke tests per module
@@ -25,11 +25,8 @@ docs/          paper notes, decisions, milestone requirements and status
 
 ## Roles
 
-- **A, data:** prior with treatment and interventions, data loading, case studies, data quality.
-- **B, model and training:** transformer, output distribution, loss, training loop, `Regressor`.
-- **C, baselines, evaluation, visualization:** baselines, metrics, evaluation harness, plots.
-
-Each person owns their modules. Changes to someone else's module go through them.
+Module ownership is in [CLAUDE.md](CLAUDE.md); the split for each milestone is in
+`docs/milestones/msN/plan.md`. Changes to someone else's module go through them.
 
 ## Setup
 
