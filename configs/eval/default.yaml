@@ -1,0 +1,6 @@
+# Evaluation config (owner: C).
+seed: 1000
+n_prior_datasets: 256
+case_studies: all
+baselines: [observational_regression, group_mean_difference]
+out_dir: outputs/eval

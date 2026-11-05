@@ -1,0 +1,30 @@
+# Resources
+
+## Code
+- **Do-PFN** (paper code: pre-trained model, prior, case studies): https://github.com/jr2021/Do-PFN
+- **Do-PFN-prior** (starting point for our prior: simple configurable SCM prior compatible with
+  nanoTabPFN; only generates observational data, no designated treatment):
+  https://github.com/oossen/Do-PFN-prior
+- **nanoTabPFN** (Pfefferle et al., minimal TabPFN with a scikit-learn-like interface):
+  https://github.com/automl/nanoTabPFN
+- **TFM-Playground** (nanoTabPFN training loop): https://github.com/automl/TFM-Playground
+
+Do not assume how these repos are structured. Inspect them before relying on any API.
+Do not copy them into our codebase. If one is needed, propose a git submodule or pip install and
+log the choice in `docs/decisions.md`.
+
+## Literature
+- Robertson et al., "Do-PFN: In-Context Learning for Causal Effect Estimation", NeurIPS 2025,
+  arXiv:2506.06039 (`docs/papers/Do-PFN.pdf`).
+- Müller et al., "Transformers Can Do Bayesian Inference", ICLR 2022.
+- Peters, Janzing, Schölkopf, "Elements of Causal Inference", MIT Press 2017.
+- PyTorch docs: https://pytorch.org/docs/stable/index.html
+- scikit-learn docs: https://scikit-learn.org/stable/documentation.html
+
+## Submission
+- Report: via ISIS, course LaTeX template, max 10 pages, no code.
+- Code: GitHub repo shared with `marvinsxtr`, submitted commit tagged `msN`, runnable on the cluster.
+
+## Infrastructure
+- Supervisor GitHub handle: `marvinsxtr` (needs access to the repo).
+- Cluster datasets: `/home/space/datasets/<dataset>`, made readable with `chmod -R a+r`.

@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Notebooks are not allowed in this project
+*.ipynb
+.ipynb_checkpoints/
+
+# Data, checkpoints, logs, outputs (anchored to repo root so src/dopfn/data/ is kept)
+/data/
+/datasets/
+/checkpoints/
+/outputs/
+/logs/
+/runs/
+/wandb/
+*.pt
+*.pth
+*.ckpt
+*.log
+slurm-*.out
+
+# Personal, per-person context (never pushed)
+CLAUDE.local.md
+.claude/settings.local.json
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/

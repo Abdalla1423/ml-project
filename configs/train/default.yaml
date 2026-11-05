@@ -1,0 +1,19 @@
+# Training config (owner: B). Maps onto dopfn.training.TrainConfig and dopfn.model.Model.
+seed: 0
+device: cuda
+model:
+  n_bins: 100
+  d_model: 128
+  n_heads: 4
+  n_layers: 4
+  d_ff: 256
+  dropout: 0.0
+train:
+  steps: 10000
+  batch_size: 8
+  lr: 1.0e-4
+  val_every: 500
+  n_val_datasets: 256
+  checkpoint_every: 1000
+  out_dir: outputs/train
+data: configs/data/prior.yaml
