@@ -1,1 +1,6 @@
+# Do-PFN-prior dependencies
+# -r Do-PFN-prior/requirements.txt
+git+https://github.com/automl/TFM-Playground.git
 
+# Install local projects
+-e ./Do-PFN-prior
