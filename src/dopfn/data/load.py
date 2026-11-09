@@ -2,6 +2,8 @@
 
 from collections.abc import Callable, Iterable
 from typing import Any
+from .prior import generate_prior_samples
+from .case_studies import get_case_study_files, load_case_study
 
 # Case-study names accepted by ``load_data(dataset=...)``.
 # Sheet example: 'observed_confounder'. TODO(team): D1 - confirm names against the Do-PFN repo.
@@ -13,6 +15,7 @@ CASE_STUDIES: tuple[str, ...] = (
     "backdoor_criterion",
     "frontdoor_criterion",
     "common_effect",
+    "observed_confounder_small",
 )
 
 
@@ -42,4 +45,23 @@ def load_data(
         (for Dont-PFN), ``cate`` the ground-truth CATE of the query points.
         TODO(team): D1 - exact tuple format, dtypes and shapes.
     """
-    raise NotImplementedError
+    if dataset == "prior":
+        samples = generate_prior_samples(n_train=n_train, n_test=n_test, seed=seed)
+        
+    elif dataset in CASE_STUDIES:
+        data_root = kwargs.pop("data_root", None)
+        files = get_case_study_files(dataset=dataset, data_root=data_root)
+        samples = (load_case_study(file_path) for file_path in files)
+
+    else:
+        raise ValueError(
+            f"Unknown dataset: {dataset!r}. "
+            f"Choose 'prior' or one of {CASE_STUDIES}."
+        )
+
+    for sample in samples:
+        if transformation is not None:
+            sample = transformation(sample)
+
+        yield sample
+
