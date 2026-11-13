@@ -1,10 +1,15 @@
 """Load Do-PFN case-study datasets from disk."""
 
 import os
+import sys
 import pickle
 from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+ORIGINAL_REPO = PROJECT_ROOT / "Do-PFN"
 
+if str(ORIGINAL_REPO) not in sys.path:
+    sys.path.insert(0, str(ORIGINAL_REPO))
 
 CASE_STUDY_DIRECTORIES = {
     "observed_confounder": "Observed_Confounder",
