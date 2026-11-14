@@ -140,10 +140,17 @@ EOF
 
 status)
     squeue -u "$USER" -o "%.10i %.20j %.10T %.10M %.12P %R"
+    # Jobs that have not started yet have no log file.
+    while read -r id name state; do
+        [[ "$name" == dopfn-* ]] || continue
+        if [[ "$state" == PENDING ]]; then
+            echo "-> Job $id ($name) is waiting in the queue; its log appears when it starts."
+        fi
+    done < <(squeue -h -u "$USER" -o "%i %j %T")
     newest=$(ls -t logs/*.out 2>/dev/null | head -n 1 || true)
     if [[ -n "$newest" ]]; then
         echo
-        echo "== $newest (last 15 lines)"
+        echo "== newest log: $newest (last 15 lines)"
         tail -n 15 "$newest"
     fi
     ;;
