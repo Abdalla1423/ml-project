@@ -19,6 +19,7 @@ src/dopfn/
   viz/         show()
 scripts/       command-line entry points
 configs/       YAML configs (data/, train/, eval/)
+cluster/       Hydra cluster: container recipe, laptop.sh (run from your computer), hydra.sh
 tests/         smoke tests per module
 docs/          paper notes, decisions, milestone requirements and status
 Do-PFN/, Do-PFN-prior/   copies of the upstream repos (see docs/third-party.md)
@@ -60,6 +61,33 @@ python scripts/evaluate.py --config configs/eval/default.yaml --checkpoint outpu
 
 On the TU cluster, datasets live in `/home/space/datasets/<dataset>` (make them readable with
 `chmod -R a+r`). No Jupyter notebooks: everything runs as scripts.
+
+## Training
+
+```bash
+python scripts/train.py --config configs/train/debug.yaml     # ~1 min on a laptop, sanity check
+python scripts/train.py --config configs/train/default.yaml   # ~3 h on one A100
+```
+
+Outputs go to `train.out_dir` of the config: `metrics.csv` (training and validation NLL, outcome
+and CATE MSE of the model and of the difference of group means), `loss_curve.png`,
+`checkpoint_latest.pt` and `checkpoint_best.pt`. Load a trained model with
+`dopfn.model.Regressor.from_checkpoint(path)`.
+
+### On the Hydra cluster
+
+From your own computer, inside this repo (step-by-step guide: [cluster/README.md](cluster/README.md)):
+
+```bash
+bash cluster/laptop.sh connect <cluster-username>   # once
+bash cluster/laptop.sh setup     # once: build the container
+bash cluster/laptop.sh test      # pytest on a CPU node
+bash cluster/laptop.sh data      # case studies -> /home/space/datasets/dopfn_case_studies
+bash cluster/laptop.sh smoke     # 10-minute GPU training test
+bash cluster/laptop.sh train     # full run; run again to continue after the 5 h limit
+bash cluster/laptop.sh status    # jobs and newest log
+bash cluster/laptop.sh results   # copy outputs/ from hydra
+```
 
 ## Docs
 

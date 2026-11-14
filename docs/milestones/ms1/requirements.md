@@ -80,19 +80,22 @@ Signature: `def show(x, outfile=None, ...)` in `dopfn.viz`.
 Signature: `class Model(torch.nn.Module)` with `__init__(self, ...)` and `forward(self, X, y_ob)`
 in `dopfn.model`.
 
-- [ ] **M1. Signature.** `Model` subclasses `torch.nn.Module`, `forward(self, X, y_ob)`.
-  Accept: `tests/test_model.py`.
-- [ ] **M2. Input.** `X` is a batch of tables, observational rows followed by query rows; `y_ob` is
+- [x] **M1. Signature.** `Model` subclasses `torch.nn.Module`, `forward(self, X, y_ob)`.
+  Accept: `tests/test_model.py`. Proof: `test_model_interface`.
+- [x] **M2. Input.** `X` is a batch of tables, observational rows followed by query rows; `y_ob` is
   the observational outcomes. Accept: `tests/test_model.py` runs a forward pass on such a batch.
-- [ ] **M3. Output is a predictive distribution** over the interventional outcomes of the query rows
+  Proof: `test_model_forward_shape`, `test_model_runs_on_padded_prior_batch`.
+- [x] **M3. Output is a predictive distribution** over the interventional outcomes of the query rows
   (e.g. bar distribution logits). Accept: output has one distribution per query row; test checks
-  shape and that it normalizes.
-- [ ] **M4. Differentiable, PyTorch ops only**, no Python loops over rows, careful with conditionals.
-  Accept: `tests/test_model.py` backpropagates and checks all parameters receive gradients; code review.
-- [ ] **M5. Treatment indicator.** The model knows column 0 is the treatment. Accept: present in the
-  input representation, test checks swapping column 0 changes the output.
-- [ ] **M6. Loss function.** NLL of the interventional outcomes under the predicted distribution.
+  shape and that it normalizes. Proof: `test_model_forward_shape`,
+  `test_bar_distribution_density_integrates_to_one`.
+- [x] **M4. Differentiable, PyTorch ops only**, no Python loops over rows, careful with conditionals.
+  Accept: `tests/test_model.py` backpropagates and checks all parameters receive gradients; code review. Proof: `test_all_parameters_get_gradients`.
+- [x] **M5. Treatment indicator.** The model knows column 0 is the treatment. Accept: present in the
+  input representation, test checks swapping column 0 changes the output. Proof: `test_treatment_column_is_special`.
+- [x] **M6. Loss function.** NLL of the interventional outcomes under the predicted distribution.
   Accept: `tests/test_model.py` checks a finite scalar, lower for a correct than a wrong target.
+  Proof: `test_nll_loss_prefers_the_right_target`.
 - [ ] **M7. Pre-training loop on prior data** (e.g. based on the Do-PFN-prior training loop, which
   is adapted from TFM-Playground).
   Accept: `python scripts/train.py --config configs/train/<cfg>.yaml` runs on the cluster, saves
@@ -103,13 +106,14 @@ in `dopfn.model`.
 
 Like `DoPFNRegressor` in the Do-PFN repo. `class Regressor` in `dopfn.model`.
 
-- [ ] **R1. `__init__(self, model, ...)`.** Accept: `tests/test_model.py`.
-- [ ] **R2. `fit(self, X_ob, y_ob)` only stores the observational data** (no training).
-  Accept: test checks no parameter changes.
-- [ ] **R3. `predict(self, X)`** returns the predicted outcome under the treatment given in column 0
-  of X. Accept: test checks shape `(n,)`.
-- [ ] **R4. `predict_cate(self, X)`** = prediction with t=1 minus prediction with t=0 (column 0
+- [x] **R1. `__init__(self, model, ...)`.** Accept: `tests/test_model.py`. Proof: `test_regressor_interface`.
+- [x] **R2. `fit(self, X_ob, y_ob)` only stores the observational data** (no training).
+  Accept: test checks no parameter changes. Proof: `test_fit_only_stores_data`.
+- [x] **R3. `predict(self, X)`** returns the predicted outcome under the treatment given in column 0
+  of X. Accept: test checks shape `(n,)`. Proof: `test_predict_shapes_and_cate`.
+- [x] **R4. `predict_cate(self, X)`** = prediction with t=1 minus prediction with t=0 (column 0
   overwritten). Accept: test checks it equals `predict(X with t=1) − predict(X with t=0)`.
+  Proof: `test_predict_shapes_and_cate`.
 - [ ] **R5. Works with the evaluation harness** (any object with `fit`/`predict`/`predict_cate`).
   Accept: `scripts/evaluate.py` evaluates `Regressor` and the baselines with the same code.
 

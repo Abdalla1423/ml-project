@@ -1,0 +1,13 @@
+# Apptainer image for the Hydra cluster (shared). Contains Python, PyTorch with CUDA and our
+# dependencies, not our code: the repo checkout is used directly via PYTHONPATH (see hydra.sh),
+# so code changes need no rebuild. Rebuild only when dependencies in pyproject.toml change.
+#
+# Built on hydra by `bash cluster/hydra.sh setup` (see cluster/README.md).
+Bootstrap: docker
+From: pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
+
+%post
+    pip install --no-cache-dir numpy scikit-learn matplotlib networkx pyyaml pytest dill pandas scipy tqdm
+
+%test
+    python -c "import torch, sklearn, networkx, yaml; print('torch', torch.__version__)"

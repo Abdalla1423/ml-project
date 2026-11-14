@@ -1,0 +1,30 @@
+# Tiny config for local checks and the Hydra gpu-test partition (~1-2 min on a laptop CPU).
+seed: 0
+device: auto
+data: configs/data/prior.yaml
+
+model:
+  n_bins: 100
+  d_model: 32
+  n_heads: 2
+  n_layers: 2
+  d_ff: 64
+  dropout: 0.0
+
+train:
+  steps: 300
+  batch_size: 8
+  lr: 1.0e-3
+  warmup_steps: 30
+  n_train_min: 20
+  n_train_max: 200
+  n_test: 50
+  target: interventional
+  val_every: 50
+  n_val_datasets: 64
+  val_batch_size: 32
+  n_border_datasets: 100
+  log_every: 25
+  checkpoint_every: 100
+  num_workers: 0
+  out_dir: outputs/train/debug

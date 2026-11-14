@@ -1,19 +1,34 @@
-# Training config (owner: B). Maps onto dopfn.training.TrainConfig and dopfn.model.Model.
+# Training config (owner: B). Loaded by dopfn.training.load_train_config.
+# Target: ~3 h on one A100 (Hydra partition gpu-5h). Check throughput with a short run first.
 seed: 0
-device: cuda
+device: auto
+data: configs/data/prior.yaml   # prior config
+
 model:
-  n_bins: 100
+  n_bins: 1000
   d_model: 128
   n_heads: 4
   n_layers: 4
   d_ff: 256
   dropout: 0.0
+
 train:
-  steps: 10000
-  batch_size: 8
-  lr: 1.0e-4
+  steps: 30000
+  batch_size: 16
+  lr: 3.0e-4
+  weight_decay: 0.0
+  warmup_steps: 1000
+  grad_clip: 1.0
+  n_train_min: 50          # observational rows per dataset, sampled per step
+  n_train_max: 1000
+  n_test: 200              # query rows per dataset
+  target: interventional   # or observational (sanity check / Dont-PFN)
   val_every: 500
   n_val_datasets: 256
-  checkpoint_every: 1000
-  out_dir: outputs/train
-data: configs/data/prior.yaml
+  val_batch_size: 32
+  n_border_datasets: 1000
+  log_every: 50
+  checkpoint_every: 500
+  num_workers: 6
+  max_minutes: null
+  out_dir: outputs/train/default

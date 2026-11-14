@@ -8,6 +8,7 @@ has a license file; all credit goes to the authors.
 | Directory | Source | Commit | Used for |
 |---|---|---|---|
 | `Do-PFN-prior/` | https://github.com/oossen/Do-PFN-prior (Ole Ossen) | `325559029f355e33abc6edbfc60c2eb9bae3124a` (2026-03-29) | Our prior extends it (`dopfn.data.prior`). Its package `dopfnprior` is installed by our `pyproject.toml`. Its training loop (`dopfnprior/utils/train.py`, `example.py`) is a reference for `dopfn.training`. |
+| nanoTabPFN (adapted, not copied) | https://github.com/automl/nanoTabPFN (Pfefferle et al.), Apache License 2.0 | `6071eec58a1a3225854480125001d5a62e279f6d` (2026-09-18) | `src/dopfn/model/transformer.py` adapts its `model.py`; the changes are listed in that file's docstring. |
 | `Do-PFN/` | https://github.com/jr2021/Do-PFN (Robertson et al.) | `90d67433b43c4d52d752dc336070f525ff856e0b` (2025-07-16) | Reading the original case-study pickles (`scripts/generate_data.py case-studies`). Reference implementation of the model, the bar distribution and `DoPFNRegressor`. Not installed as a package (its top-level module names `datasets`, `model`, `utils`, `scripts` are too generic). |
 
 ## Not copied
