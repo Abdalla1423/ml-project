@@ -58,7 +58,9 @@ submit() {
 
 header='#!/bin/bash
 set -euo pipefail
-echo "job ${SLURM_JOB_ID} on $(hostname) at $(date), commit $(git rev-parse --short HEAD)"'
+echo "job ${SLURM_JOB_ID} on $(hostname) at $(date), commit $(git rev-parse --short HEAD)"
+# Apptainer only mounts $HOME, /tmp and the current folder; make the shared datasets visible too.
+if [[ -d /home/space ]]; then export APPTAINER_BINDPATH=/home/space; fi'
 
 cmd=${1:-}
 [[ -n "$cmd" ]] || usage
@@ -94,6 +96,7 @@ $header
 src=\$(mktemp -d /tmp/dopfn-data-XXXX)
 git clone --quiet --depth 1 --filter=blob:none --sparse $DO_PFN_URL "\$src/Do-PFN"
 git -C "\$src/Do-PFN" sparse-checkout set data/prior_sampling
+mkdir -p "$DOPFN_CASE_STUDY_ROOT" || { echo "Cannot create $DOPFN_CASE_STUDY_ROOT (no write access?). Ask the cluster admins, or set DOPFN_CASE_STUDY_ROOT to a folder you own." >&2; exit 1; }
 apptainer exec "$SIF" python scripts/generate_data.py case-studies \\
     --source "\$src/Do-PFN/data/prior_sampling" --out "$DOPFN_CASE_STUDY_ROOT"
 chmod -R a+rX "$DOPFN_CASE_STUDY_ROOT"
