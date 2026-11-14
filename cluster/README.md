@@ -16,8 +16,12 @@ The official cluster documentation (partitions, GPUs, file systems, rules) is co
 bash cluster/laptop.sh connect <your-cluster-username>
 ```
 
-It adds a `hydra` shortcut to `~/.ssh/config` and tests the connection. The first time, answer
-`yes` if ssh asks about the fingerprint. Ends with `Done`.
+Use the username from the activation email. It saves the username in the file `.cluster-user`
+(not committed) and tests the connection exactly like `ssh <username>@hydra.ml.tu-berlin.de`.
+Ends with `Done`. Running it again with another username replaces the saved one.
+
+If you normally connect with a specific key (`ssh -i <keyfile> ...`), put
+`export DOPFN_SSH_KEY=<keyfile>` in your shell (or in front of every command).
 
 ## 2. Run the steps (in this order)
 
@@ -53,7 +57,7 @@ model).
 ## If something goes wrong
 
 - **`connect` fails:** check the username in the activation email. If hydra is rebooting (Mondays
-  01:00), use the second entry node: `DOPFN_HOST=karkinos bash cluster/laptop.sh status`.
+  01:00), use the second entry node: `DOPFN_ENTRY=karkinos bash cluster/laptop.sh status`.
 - **A job failed:** `status` shows the end of its log; send that to the team.
 - **`setup` fails:** the script already retries with `--fakeroot`; otherwise ask the cluster admins.
 - **`data` says permission denied:** you need write access to `/home/space/datasets`; ask the
@@ -62,7 +66,7 @@ model).
 
 ## Working directly on hydra (optional)
 
-After `ssh hydra`, the same steps are available as `cd ml-project && bash cluster/hydra.sh <step>`
+After `ssh <username>@hydra.ml.tu-berlin.de`, the same steps are available as `cd ml-project && bash cluster/hydra.sh <step>`
 (`setup`, `test`, `data`, `smoke`, `train`, `status`). `laptop.sh` only calls this script remotely.
 
 ## Getting an account (new team members)

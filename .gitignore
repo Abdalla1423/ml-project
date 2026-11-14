@@ -37,3 +37,6 @@ CLAUDE.local.md
 .DS_Store
 .idea/
 .vscode/
+
+# Cluster username saved by cluster/laptop.sh connect
+/.cluster-user

@@ -2,7 +2,7 @@
 # Run every cluster step from your own computer (macOS or Linux; on Windows use WSL).
 # Run it inside your local copy of the repo:
 #
-#   bash cluster/laptop.sh connect <cluster-username>  # once: ssh shortcut + connection test
+#   bash cluster/laptop.sh connect <cluster-username>  # once: save username + connection test
 #   bash cluster/laptop.sh setup                       # build the container on hydra (once)
 #   bash cluster/laptop.sh test                        # run the tests on hydra
 #   bash cluster/laptop.sh data                        # case studies -> /home/space/datasets
@@ -16,12 +16,17 @@
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
-HOST=${DOPFN_HOST:-hydra}
+# The username is stored here by `connect` (gitignored, one line).
+USER_FILE=.cluster-user
+# Entry node: hydra, or karkinos when hydra is down (DOPFN_ENTRY=karkinos).
+ENTRY=${DOPFN_ENTRY:-hydra}
 REMOTE_DIR=${DOPFN_REMOTE_DIR:-ml-project}
-# Optional: a specific private key. By default ssh picks the key itself (as with a direct `ssh`).
-KEY=${DOPFN_SSH_KEY:-}
-# Fail after 15 s instead of hanging when hydra does not answer.
+# ssh options: fail after 15 s instead of hanging; optional explicit key (DOPFN_SSH_KEY).
 SSH_OPTS=(-o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4)
+if [[ -n "${DOPFN_SSH_KEY:-}" ]]; then
+    [[ -f "$DOPFN_SSH_KEY" ]] || { echo "Error: DOPFN_SSH_KEY is set, but there is no file $DOPFN_SSH_KEY." >&2; exit 1; }
+    SSH_OPTS+=(-i "$DOPFN_SSH_KEY")
+fi
 
 die() {
     echo "Error: $*" >&2
@@ -33,68 +38,60 @@ usage() {
     exit 1
 }
 
-connect() {
-    local user=${1:-}
-    [[ -n "$user" ]] || die "Give your cluster username: bash cluster/laptop.sh connect <username>"
-    local identity=""
-    if [[ -n "$KEY" ]]; then
-        [[ -f "$KEY" ]] || die "DOPFN_SSH_KEY is set, but there is no file $KEY."
-        identity="   IdentityFile $KEY"
-    fi
-    mkdir -p "$HOME/.ssh"
-    chmod 700 "$HOME/.ssh"
-    touch "$HOME/.ssh/config"
-    chmod 600 "$HOME/.ssh/config"
-    # Remove the block an earlier `connect` added (so running connect again fixes a wrong
-    # username), keep everything else in the file.
+# user@hydra.ml.tu-berlin.de: exactly what a direct `ssh` uses, so the same ssh settings apply.
+target() {
+    [[ -s "$USER_FILE" ]] || die "Run 'bash cluster/laptop.sh connect <cluster-username>' first."
+    echo "$(head -n 1 "$USER_FILE")@$ENTRY.ml.tu-berlin.de"
+}
+
+# Earlier versions added a 'Host hydra' block to ~/.ssh/config; remove it so it can't interfere.
+remove_old_ssh_config() {
     local config="$HOME/.ssh/config" tmp
+    [[ -f "$config" ]] && grep -q "^# Added by ml-project/cluster/laptop.sh" "$config" || return 0
     tmp=$(mktemp)
     awk '
         /^# Added by ml-project\/cluster\/laptop.sh/ { skip = 1; next }
         skip && (/^Host (hydra|karkinos)[[:space:]]*$/ || /^[[:space:]]/ || /^$/) { next }
         { skip = 0; print }
     ' "$config" >"$tmp" && cat "$tmp" >"$config" && rm -f "$tmp"
-    if grep -qE "^Host[[:space:]]+(hydra|karkinos)([[:space:]]|$)" "$config"; then
-        echo "~/.ssh/config has your own 'Host hydra'/'Host karkinos' entry; leaving it unchanged."
-    else
-        cat >>"$config" <<EOF
+    echo "Removed the 'hydra'/'karkinos' entries an earlier version added to ~/.ssh/config."
+}
 
-# Added by ml-project/cluster/laptop.sh
-Host hydra
-   HostName hydra.ml.tu-berlin.de
-   User $user
-$identity
-Host karkinos
-   HostName karkinos.ml.tu-berlin.de
-   User $user
-$identity
-EOF
-        echo "Set up 'hydra' and 'karkinos' in ~/.ssh/config for user '$user'."
-    fi
-    echo "Connecting to $HOST ..."
-    ssh "${SSH_OPTS[@]}" -o StrictHostKeyChecking=accept-new "$HOST" 'echo "Connected to $(hostname) as $USER."' ||
-        die "Could not connect. Check the username from the activation email. If plain
-       'ssh $user@hydra.ml.tu-berlin.de' works with a key that is not your default one, run
-       DOPFN_SSH_KEY=~/.ssh/<that-key> bash cluster/laptop.sh connect $user
-       Running connect again replaces the earlier settings. If hydra is rebooting (Mondays 01:00),
-       try: DOPFN_HOST=karkinos bash cluster/laptop.sh connect $user"
+connect() {
+    local user=${1:-}
+    [[ -n "$user" ]] || die "Give your cluster username: bash cluster/laptop.sh connect <username>"
+    remove_old_ssh_config
+    echo "$user" >"$USER_FILE"
+    local host
+    host=$(target)
+    echo "Connecting to $host ..."
+    ssh "${SSH_OPTS[@]}" -o StrictHostKeyChecking=accept-new "$host" 'echo "Connected to $(hostname) as $USER."' ||
+        die "Could not connect as $host.
+       Does 'ssh $host' work in this terminal? If you normally connect with 'ssh -i <keyfile> ...',
+       run: DOPFN_SSH_KEY=<keyfile> bash cluster/laptop.sh connect $user
+       (and set DOPFN_SSH_KEY for the other commands too, e.g. export it in your shell).
+       If hydra is down (it reboots Mondays 01:00), try: DOPFN_ENTRY=karkinos bash cluster/laptop.sh connect $user"
     echo "Done. Next: bash cluster/laptop.sh setup"
 }
 
 sync_code() {
-    echo "Copying code to $HOST:$REMOTE_DIR ..."
+    local host=$1
+    echo "Copying code to $host:$REMOTE_DIR ..."
     rsync -az --delete -e "ssh ${SSH_OPTS[*]}" \
         --exclude .venv/ --exclude outputs/ --exclude logs/ --exclude __pycache__/ \
         --exclude .pytest_cache/ --exclude CLAUDE.local.md --exclude .claude/ --exclude .DS_Store \
-        ./ "$HOST:$REMOTE_DIR/"
+        --exclude "$USER_FILE" \
+        ./ "$host:$REMOTE_DIR/"
 }
 
 # Runs hydra.sh in a login shell: only login shells have the SLURM commands (sbatch, squeue) on
 # the PATH on hydra; plain `ssh host cmd` does not.
 on_hydra() {
-    ssh "${SSH_OPTS[@]}" "$HOST" "bash -lc 'cd $REMOTE_DIR && bash cluster/hydra.sh $*'" ||
-        die "The command on $HOST failed or $HOST did not answer (see the messages above).
-       If hydra does not answer, try the second entry node: DOPFN_HOST=karkinos bash cluster/laptop.sh $1"
+    local host=$1
+    shift
+    ssh "${SSH_OPTS[@]}" "$host" "bash -lc 'cd $REMOTE_DIR && bash cluster/hydra.sh $*'" ||
+        die "The command on $host failed or the cluster did not answer (see the messages above).
+       If hydra does not answer, try the second entry node: DOPFN_ENTRY=karkinos bash cluster/laptop.sh $1"
 }
 
 cmd=${1:-}
@@ -107,15 +104,18 @@ connect)
     ;;
 setup | test | data | smoke | train)
     command -v rsync >/dev/null || die "rsync is not installed (on Windows, run this inside WSL)."
-    sync_code
-    on_hydra "$cmd" "$@"
+    host=$(target)
+    sync_code "$host"
+    on_hydra "$host" "$cmd" "$@"
     ;;
 status)
-    on_hydra status
+    host=$(target)
+    on_hydra "$host" status
     ;;
 results)
+    host=$(target)
     mkdir -p outputs
-    rsync -az -e "ssh ${SSH_OPTS[*]}" "$HOST:$REMOTE_DIR/outputs/" outputs/
+    rsync -az -e "ssh ${SSH_OPTS[*]}" "$host:$REMOTE_DIR/outputs/" outputs/
     echo "Copied to ./outputs/ (e.g. outputs/train/default/loss_curve.png)."
     ;;
 *)
