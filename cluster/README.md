@@ -4,6 +4,9 @@ You run everything from **your own computer**, inside your local copy of this re
 `cluster/laptop.sh`. It copies your code to hydra and starts the step there as a cluster job.
 Works on macOS and Linux; on Windows, run it inside WSL.
 
+The official cluster documentation (partitions, GPUs, file systems, rules) is copied in
+[docs/hydra-cluster.md](../docs/hydra-cluster.md).
+
 **Before you start:** you have the cluster activation email (it contains your username), and the
 key you emailed for the account is `~/.ssh/id_rsa` on this computer.
 
