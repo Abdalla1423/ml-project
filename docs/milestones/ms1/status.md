@@ -5,6 +5,15 @@ Reference requirement IDs from `requirements.md` (e.g. M1, R3).
 
 ## Log
 
+- 2026-11-14 (B, on branch `b/vendor-upstream-and-fix-data`, needs review by A): Do-PFN and
+  Do-PFN-prior copies at the repo root completed (decision D7, supervisor's recommendation). Data module
+  fixed and tested, D1–D10 covered by `tests/test_data.py` (D8 on real data when
+  `$DOPFN_CASE_STUDY_ROOT` is set). Fixes: every prior dataset came from the same SCM; CATE column
+  offsets wrong and crash on hidden features; CATE replaced by the shared-noise effect (D8, same as
+  Do-PFN); query covariates factual (D5); case studies split into context/query as in Do-PFN and
+  read from converted tensor files; all randomness seeded and independent of `PYTHONHASHSEED`;
+  `set_seed` and `load_yaml` implemented. Next: A reviews; agree on D1, D5, D6, D8, D9; convert the
+  case studies on the cluster (D11).
 - 2026-11-05 (B): Paper and sheet PDFs added; `requirements.md` checked against `sheet.pdf`.
 - 2026-11-05 (B): Repo skeleton and docs set up. All deliverables are stubs (`NotImplementedError`).
   Next: team agrees on D1–D6, B starts plan step 1.

@@ -52,7 +52,11 @@ Shared files in the repo describe the team, not one person.
 - Seeds controllable everywhere (`dopfn.common.seed.set_seed`, explicit `seed` / `torch.Generator` args).
 - Model code must be differentiable and vectorized. No Python loops over rows.
 - Interface choices not agreed with the team: mark `TODO(team)` in code and log them in `docs/decisions.md`.
-- Do not copy external repos into the codebase. Propose a git submodule or pip dependency instead.
+- External code (Do-PFN, Do-PFN-prior, nanoTabPFN, TFM-Playground, ...) may be copied into the repo
+  (one top-level folder per repo, e.g. `Do-PFN/`) and changed or combined as needed (decision D7).
+  For each copy, record the source URL and commit in `docs/third-party.md`, and mark changes with
+  `MODIFIED (dopfn replication)`.
+  Our own code stays in `src/dopfn/`.
 - Do not assume how external repos are structured. Inspect them before relying on any API.
 
 ## Repo layout
@@ -74,6 +78,7 @@ src/dopfn/
 scripts/       entry points: train.py, evaluate.py, generate_data.py
 configs/       data/, train/, eval/ YAML configs
 tests/         smoke tests per module
+Do-PFN/, Do-PFN-prior/   copies of the upstream repos (decision D7, docs/third-party.md)
 ```
 
 ## Working rules
