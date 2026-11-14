@@ -45,10 +45,19 @@ connect() {
     chmod 700 "$HOME/.ssh"
     touch "$HOME/.ssh/config"
     chmod 600 "$HOME/.ssh/config"
-    if grep -qE "^Host[[:space:]]+$HOST([[:space:]]|$)" "$HOME/.ssh/config"; then
-        echo "~/.ssh/config already has 'Host $HOST', leaving it unchanged."
+    # Remove the block an earlier `connect` added (so running connect again fixes a wrong
+    # username), keep everything else in the file.
+    local config="$HOME/.ssh/config" tmp
+    tmp=$(mktemp)
+    awk '
+        /^# Added by ml-project\/cluster\/laptop.sh/ { skip = 1; next }
+        skip && (/^Host (hydra|karkinos)[[:space:]]*$/ || /^[[:space:]]/ || /^$/) { next }
+        { skip = 0; print }
+    ' "$config" >"$tmp" && cat "$tmp" >"$config" && rm -f "$tmp"
+    if grep -qE "^Host[[:space:]]+(hydra|karkinos)([[:space:]]|$)" "$config"; then
+        echo "~/.ssh/config has your own 'Host hydra'/'Host karkinos' entry; leaving it unchanged."
     else
-        cat >>"$HOME/.ssh/config" <<EOF
+        cat >>"$config" <<EOF
 
 # Added by ml-project/cluster/laptop.sh
 Host hydra
@@ -60,15 +69,15 @@ Host karkinos
    User $user
 $identity
 EOF
-        echo "Added 'hydra' and 'karkinos' to ~/.ssh/config."
+        echo "Set up 'hydra' and 'karkinos' in ~/.ssh/config for user '$user'."
     fi
     echo "Connecting to $HOST ..."
     ssh "${SSH_OPTS[@]}" -o StrictHostKeyChecking=accept-new "$HOST" 'echo "Connected to $(hostname) as $USER."' ||
         die "Could not connect. Check the username from the activation email. If plain
        'ssh $user@hydra.ml.tu-berlin.de' works with a key that is not your default one, run
        DOPFN_SSH_KEY=~/.ssh/<that-key> bash cluster/laptop.sh connect $user
-       (remove the 'Added by ml-project' block from ~/.ssh/config first). If hydra is rebooting
-       (Mondays 01:00), try: DOPFN_HOST=karkinos bash cluster/laptop.sh connect $user"
+       Running connect again replaces the earlier settings. If hydra is rebooting (Mondays 01:00),
+       try: DOPFN_HOST=karkinos bash cluster/laptop.sh connect $user"
     echo "Done. Next: bash cluster/laptop.sh setup"
 }
 
