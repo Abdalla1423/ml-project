@@ -28,7 +28,7 @@ class Heaviside(nn.Module):
 
 
 class RBFActivation(nn.Module):
-    """Radial Basis Function (RBF) activation layer.
+    r"""Radial Basis Function (RBF) activation layer.
 
     Implements the Gaussian RBF: :math:`f(x) = \exp(-x^2)`.
     Useful for localized feature representations.

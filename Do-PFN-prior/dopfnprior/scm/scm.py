@@ -4,7 +4,12 @@ from torch import Tensor
 import torch.nn as nn
 import networkx as nx
 
-from tfmplayground.utils import get_default_device
+# MODIFIED (dopfn replication): upstream imports get_default_device from tfmplayground.
+# Inlined so the prior does not depend on TFM-Playground. Default device changed to CPU so that
+# prior sampling is deterministic and device-independent; callers move tensors to the GPU.
+def get_default_device() -> torch.device:
+    return torch.device("cpu")
+
 
 from dopfnprior.utils.sampling import DistributionSampler
 from dopfnprior.utils.likelihood_wrapper import LikelihoodWrapper
