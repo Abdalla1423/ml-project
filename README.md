@@ -19,7 +19,7 @@ src/dopfn/
   viz/         show()
 scripts/       command-line entry points
 configs/       YAML configs (data/, train/, eval/)
-cluster/       Apptainer recipe and SLURM job scripts for the Hydra cluster
+cluster/       Hydra cluster: container recipe and hydra.sh (all cluster steps)
 tests/         smoke tests per module
 docs/          paper notes, decisions, milestone requirements and status
 Do-PFN/, Do-PFN-prior/   copies of the upstream repos (see docs/third-party.md)
@@ -76,15 +76,16 @@ and CATE MSE of the model and of the difference of group means), `loss_curve.png
 
 ### On the Hydra cluster
 
-```bash
-apptainer build ~/containers/dopfn.sif cluster/dopfn.def      # once, and when dependencies change
-mkdir -p logs
-sbatch --partition=gpu-test --time=00:15:00 cluster/train.sbatch configs/train/debug.yaml --max-minutes 10
-sbatch cluster/train.sbatch                                     # gpu-5h, default config
-```
+Step by step in [cluster/README.md](cluster/README.md). In short:
 
-The job stops cleanly before the 5 h limit; submitting the same command again resumes from
-`checkpoint_latest.pt`. Logs are in `logs/train-<jobid>.out`.
+```bash
+bash cluster/hydra.sh setup     # once: build the container
+bash cluster/hydra.sh test      # pytest on a CPU node
+bash cluster/hydra.sh data      # case studies -> /home/space/datasets/dopfn_case_studies
+bash cluster/hydra.sh smoke     # 10-minute GPU training test
+bash cluster/hydra.sh train     # full run; run again to continue after the 5 h limit
+bash cluster/hydra.sh status    # jobs and newest log
+```
 
 ## Docs
 
