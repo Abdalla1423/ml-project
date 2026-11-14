@@ -7,7 +7,7 @@
 #   bash cluster/laptop.sh test                        # run the tests on hydra
 #   bash cluster/laptop.sh data                        # case studies -> /home/space/datasets
 #   bash cluster/laptop.sh smoke                       # 10-minute GPU training test
-#   bash cluster/laptop.sh train [config]              # full training run (run again to continue)
+#   bash cluster/laptop.sh train [--long] [config]     # training, 2 h (--long: 5 h); again = continue
 #   bash cluster/laptop.sh status                      # jobs on hydra + end of the newest log
 #   bash cluster/laptop.sh results                     # copy hydra's outputs/ to ./outputs/
 #

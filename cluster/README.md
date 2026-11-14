@@ -28,10 +28,12 @@ finished before starting the next step.
 | Run the tests | `bash cluster/laptop.sh test` | ~2 min | `passed` |
 | Case studies to `/home/space/datasets` | `bash cluster/laptop.sh data` | ~5 min | `Case studies ready` |
 | Short GPU training test | `bash cluster/laptop.sh smoke` | ~10 min | `Smoke test passed` |
-| Full training | `bash cluster/laptop.sh train` | up to 5 h | `Stopping after ...` or `step 30000` |
+| Full training | `bash cluster/laptop.sh train` | up to 2 h | `Stopping after ...` or `step 30000` |
 
-- Training stops on its own shortly before the 5 h limit. If `status` shows `Stopping after ...`,
-  run `bash cluster/laptop.sh train` again: it continues from the last checkpoint.
+- Training runs as a 2 h job (short jobs start sooner) and stops on its own shortly before the
+  limit. If `status` shows `Stopping after ...`, run `bash cluster/laptop.sh train` again: it
+  continues from the last checkpoint. `train --long` requests a 5 h job instead, which is only
+  worth it for much bigger models.
 - Every step uses the code currently on your computer, so `git pull` first to get the team's
   latest version.
 

@@ -1,5 +1,6 @@
 # Training config (owner: B). Loaded by dopfn.training.load_train_config.
-# Target: ~3 h on one A100 (Hydra partition gpu-5h). Check throughput with a short run first.
+# Target: 1-2 h on one A100 (Hydra partition gpu-2h; the job resumes if it needs longer).
+# The cluster smoke test shows the real speed; adjust `steps` if needed.
 seed: 0
 device: auto
 data: configs/data/prior.yaml   # prior config

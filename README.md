@@ -84,7 +84,7 @@ bash cluster/laptop.sh setup     # once: build the container
 bash cluster/laptop.sh test      # pytest on a CPU node
 bash cluster/laptop.sh data      # case studies -> /home/space/datasets/dopfn_case_studies
 bash cluster/laptop.sh smoke     # 10-minute GPU training test
-bash cluster/laptop.sh train     # full run; run again to continue after the 5 h limit
+bash cluster/laptop.sh train     # 2 h job (--long: 5 h); run again to continue from the checkpoint
 bash cluster/laptop.sh status    # jobs and newest log
 bash cluster/laptop.sh results   # copy outputs/ from hydra
 ```

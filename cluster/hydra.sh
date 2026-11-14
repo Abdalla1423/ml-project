@@ -5,7 +5,7 @@
 #   bash cluster/hydra.sh test           # run pytest on a CPU node (max 15 min)
 #   bash cluster/hydra.sh data           # case studies -> /home/space/datasets/dopfn_case_studies
 #   bash cluster/hydra.sh smoke          # 10-minute training test on a GPU
-#   bash cluster/hydra.sh train [config] # full training run (gpu-5h); run again to continue it
+#   bash cluster/hydra.sh train [--long] [config]  # training (gpu-2h, --long: gpu-5h); again = continue
 #   bash cluster/hydra.sh status         # your jobs and the end of the newest log
 #
 # Every step submits a SLURM job and returns immediately; `status` shows how it is going.
@@ -99,14 +99,24 @@ EOF
 
 train)
     need_container
-    config=${1:-configs/train/default.yaml}
+    # Default: gpu-2h (starts sooner); --long: gpu-5h. The job stops cleanly 15 min before the
+    # limit, and the next 'train' continues from the checkpoint.
+    partition=gpu-2h
+    minutes=105
+    config=configs/train/default.yaml
+    for arg in "$@"; do
+        case "$arg" in
+        --long) partition=gpu-5h minutes=285 ;;
+        -*) echo "Unknown option: $arg" >&2; exit 1 ;;
+        *) config=$arg ;;
+        esac
+    done
     [[ -f "$config" ]] || { echo "Config not found: $config" >&2; exit 1; }
-    # Stops cleanly 15 min before the 5 h limit; the next 'train' continues from the checkpoint.
-    submit train --partition=gpu-5h --gpus-per-node=1 --constraint="80gb|40gb" --ntasks-per-node=8 <<EOF
+    submit train --partition=$partition --gpus-per-node=1 --constraint="80gb|40gb" --ntasks-per-node=8 <<EOF
 $header
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 apptainer exec --nv "$SIF" python scripts/train.py --config "$config" \\
-    --device cuda --resume --max-minutes 285
+    --device cuda --resume --max-minutes $minutes
 EOF
     ;;
 

@@ -8,7 +8,7 @@ Reference requirement IDs from `requirements.md` (e.g. M1, R3).
 - 2026-11-14 (B, branch `b/model`): Model, bar distribution, NLL loss, adapter, training loop,
   `scripts/train.py`, `Regressor` and Hydra job files (`cluster/`) implemented; M1–M6 and R1–R4 done
   (tests in `tests/test_model.py`, `tests/test_training.py`). Proposals for D2, D3, D4 in
-  `docs/decisions.md`. Next: smoke test on `gpu-test`, full run on `gpu-5h` (M7, M8, G1); R5 once
+  `docs/decisions.md`. Next: smoke test on `gpu-test`, full run on `gpu-2h` (M7, M8, G1); R5 once
   C's harness exists.
 - 2026-11-14 (B, on branch `b/vendor-upstream-and-fix-data`, needs review by A): Do-PFN and
   Do-PFN-prior copies at the repo root completed (decision D7, supervisor's recommendation). Data module
