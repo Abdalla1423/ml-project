@@ -10,6 +10,7 @@
 #
 # Every step submits a SLURM job and returns immediately; `status` shows how it is going.
 # Run it in a normal login session (ssh <username>@hydra.ml.tu-berlin.de).
+# Optional: export DOPFN_MAIL=<email> to get an email when a job ends or fails.
 # See cluster/README.md for the step-by-step guide.
 set -euo pipefail
 
@@ -43,9 +44,15 @@ need_container() {
 submit() {
     local name=$1
     shift
-    local job
-    job=$(sbatch --parsable --job-name="dopfn-$name" --output="logs/$name-%j.out" "$@")
+    local job mail=()
+    if [[ -n "${DOPFN_MAIL:-}" ]]; then
+        mail=(--mail-type=END,FAIL --mail-user="$DOPFN_MAIL")
+    fi
+    job=$(sbatch --parsable --job-name="dopfn-$name" --output="logs/$name-%j.out" ${mail[@]+"${mail[@]}"} "$@")
     echo "Submitted job $job ($name). Log: logs/$name-$job.out"
+    if [[ -n "${DOPFN_MAIL:-}" ]]; then
+        echo "An email goes to $DOPFN_MAIL when the job ends or fails."
+    fi
     echo "Check it with: bash cluster/hydra.sh status"
 }
 

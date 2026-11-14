@@ -42,6 +42,14 @@ until the job is finished before starting the next step.
   limit. If `status` shows `Stopping after ...`, run `bash cluster/hydra.sh train` again: it
   continues from the last checkpoint. `train --long` requests a 5 h job instead.
 - You can log out (`exit`) while a job runs; it keeps running. Log in again to check `status`.
+- **Email when a job is done:** run this once on the cluster, with your email address:
+
+  ```bash
+  echo 'export DOPFN_MAIL=<your-email>' >> ~/.bashrc && source ~/.bashrc
+  ```
+
+  From then on, every step sends an email when its job ends or fails (jobs submitted before do
+  not).
 
 ## 3. Get the results (on your computer)
 
