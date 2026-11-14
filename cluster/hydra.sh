@@ -5,7 +5,8 @@
 #   bash cluster/hydra.sh test           # run pytest on a CPU node (max 15 min)
 #   bash cluster/hydra.sh data           # case studies -> /home/space/datasets/dopfn_case_studies
 #   bash cluster/hydra.sh smoke          # 10-minute training test on a GPU
-#   bash cluster/hydra.sh train [--long] [config]  # training (gpu-2h, --long: gpu-5h); again = continue
+#   bash cluster/hydra.sh train [--long] [--name NAME] [config]  # training (gpu-2h, --long: gpu-5h);
+#                                        # again = continue; --name = separate run in outputs/train/NAME
 #   bash cluster/hydra.sh status         # your jobs and the end of the newest log
 #
 # Every step submits a SLURM job and returns immediately; `status` shows how it is going.
@@ -29,7 +30,7 @@ for tool in sbatch squeue; do
 done
 
 usage() {
-    sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
     exit 1
 }
 
@@ -117,32 +118,44 @@ EOF
 
 train)
     need_container
-    # Only one training job at a time: all write to the same output folder.
-    existing=$(squeue -h -u "$USER" -n dopfn-train -o "%i (%T)" | paste -sd ' ' -)
-    if [[ -n "$existing" ]]; then
-        echo "A training job is already queued or running: $existing." >&2
-        echo "Two jobs would overwrite each other's checkpoints. Wait for it, or cancel it first:" >&2
-        echo "  scancel <JOBID>" >&2
-        exit 1
-    fi
     # Default: gpu-2h (starts sooner); --long: gpu-5h. The job stops cleanly 15 min before the
     # limit, and the next 'train' continues from the checkpoint.
+    # --name NAME: a separate run with its own output folder outputs/train/NAME (default: default),
+    # so it can run next to another one.
     partition=gpu-2h
     minutes=105
     config=configs/train/default.yaml
-    for arg in "$@"; do
-        case "$arg" in
+    name=default
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
         --long) partition=gpu-5h minutes=285 ;;
-        -*) echo "Unknown option: $arg" >&2; exit 1 ;;
-        *) config=$arg ;;
+        --name)
+            name=${2:-}
+            [[ "$name" =~ ^[A-Za-z0-9_-]+$ ]] || { echo "--name needs a name of letters, digits, - or _" >&2; exit 1; }
+            shift
+            ;;
+        -*) echo "Unknown option: $1" >&2; exit 1 ;;
+        *) config=$1 ;;
         esac
+        shift
     done
     [[ -f "$config" ]] || { echo "Config not found: $config" >&2; exit 1; }
-    submit train --partition=$partition --gpus-per-node=1 --ntasks-per-node=8 <<EOF
+    job_name=train
+    [[ "$name" == default ]] || job_name=train-$name
+    out_dir=outputs/train/$name
+    # Only one job per run name: two jobs on the same folder would overwrite each other's checkpoints.
+    existing=$(squeue -h -u "$USER" -n "dopfn-$job_name" -o "%i (%T)" | paste -sd ' ' -)
+    if [[ -n "$existing" ]]; then
+        echo "A training job for '$name' is already queued or running: $existing." >&2
+        echo "Wait for it, cancel it (scancel <JOBID>), or start a separate run: train --name <other-name>" >&2
+        exit 1
+    fi
+    submit "$job_name" --partition=$partition --gpus-per-node=1 --ntasks-per-node=8 <<EOF
 $header
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 apptainer exec --nv "$SIF" python scripts/train.py --config "$config" \\
-    --device cuda --resume --max-minutes $minutes
+    --device cuda --resume --max-minutes $minutes --out-dir "$out_dir"
+echo "Results in $out_dir"
 EOF
     ;;
 

@@ -41,6 +41,9 @@ until the job is finished before starting the next step.
 - Training runs as a 2 h job (short jobs start sooner) and stops on its own shortly before the
   limit. If `status` shows `Stopping after ...`, run `bash cluster/hydra.sh train` again: it
   continues from the last checkpoint. `train --long` requests a 5 h job instead.
+- **A second run next to the first:** `bash cluster/hydra.sh train --name run2` starts a separate
+  run with its own folder `outputs/train/run2`, so it never touches the first run's checkpoints. To
+  continue it later, use the same `--name`. Without `--name` the run is `outputs/train/default`.
 - You can log out (`exit`) while a job runs; it keeps running. Log in again to check `status`.
 - **Email when a job is done:** run this once on the cluster, with your email address:
 
