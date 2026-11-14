@@ -1,0 +1,14 @@
+# Apptainer image for the Hydra cluster (shared). Contains Python, PyTorch with CUDA and our
+# dependencies, not our code: the repo checkout is used directly via PYTHONPATH (see train.sbatch),
+# so code changes need no rebuild. Rebuild only when dependencies in pyproject.toml change.
+#
+# Build on hydra (see the cluster's Apptainer tutorial if it needs --fakeroot):
+#   apptainer build ~/containers/dopfn.sif cluster/dopfn.def
+Bootstrap: docker
+From: pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
+
+%post
+    pip install --no-cache-dir numpy scikit-learn matplotlib networkx pyyaml pytest dill pandas scipy tqdm
+
+%test
+    python -c "import torch, sklearn, networkx, yaml; print('torch', torch.__version__)"
