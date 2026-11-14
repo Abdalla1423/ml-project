@@ -7,6 +7,8 @@ Bootstrap: docker
 From: pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
 
 %post
+    # git: checkpoints record the code version, and one test lists the tracked files.
+    apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
     pip install --no-cache-dir numpy scikit-learn matplotlib networkx pyyaml pytest dill pandas scipy tqdm
 
 %test
