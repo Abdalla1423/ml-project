@@ -19,6 +19,8 @@ cd "$(git rev-parse --show-toplevel)"
 HOST=${DOPFN_HOST:-hydra}
 REMOTE_DIR=${DOPFN_REMOTE_DIR:-ml-project}
 KEY=${DOPFN_SSH_KEY:-$HOME/.ssh/id_rsa}
+# Fail after 15 s instead of hanging when hydra does not answer.
+SSH_OPTS=(-o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4)
 
 die() {
     echo "Error: $*" >&2
@@ -57,7 +59,7 @@ EOF
         echo "Added 'hydra' and 'karkinos' to ~/.ssh/config."
     fi
     echo "Connecting to $HOST ..."
-    ssh -o StrictHostKeyChecking=accept-new "$HOST" 'echo "Connected to $(hostname) as $USER."' ||
+    ssh "${SSH_OPTS[@]}" -o StrictHostKeyChecking=accept-new "$HOST" 'echo "Connected to $(hostname) as $USER."' ||
         die "Could not connect. Check the username from the activation email and that $KEY is
        the key you emailed. If hydra is rebooting (Mondays 01:00), try: DOPFN_HOST=karkinos bash cluster/laptop.sh connect $user"
     echo "Done. Next: bash cluster/laptop.sh setup"
@@ -65,14 +67,18 @@ EOF
 
 sync_code() {
     echo "Copying code to $HOST:$REMOTE_DIR ..."
-    rsync -az --delete \
+    rsync -az --delete -e "ssh ${SSH_OPTS[*]}" \
         --exclude .venv/ --exclude outputs/ --exclude logs/ --exclude __pycache__/ \
         --exclude .pytest_cache/ --exclude CLAUDE.local.md --exclude .claude/ --exclude .DS_Store \
         ./ "$HOST:$REMOTE_DIR/"
 }
 
+# Runs hydra.sh in a login shell: only login shells have the SLURM commands (sbatch, squeue) on
+# the PATH on hydra; plain `ssh host cmd` does not.
 on_hydra() {
-    ssh "$HOST" "cd $REMOTE_DIR && bash cluster/hydra.sh $*"
+    ssh "${SSH_OPTS[@]}" "$HOST" "bash -lc 'cd $REMOTE_DIR && bash cluster/hydra.sh $*'" ||
+        die "The command on $HOST failed or $HOST did not answer (see the messages above).
+       If hydra does not answer, try the second entry node: DOPFN_HOST=karkinos bash cluster/laptop.sh $1"
 }
 
 cmd=${1:-}
@@ -93,7 +99,7 @@ status)
     ;;
 results)
     mkdir -p outputs
-    rsync -az "$HOST:$REMOTE_DIR/outputs/" outputs/
+    rsync -az -e "ssh ${SSH_OPTS[*]}" "$HOST:$REMOTE_DIR/outputs/" outputs/
     echo "Copied to ./outputs/ (e.g. outputs/train/default/loss_curve.png)."
     ;;
 *)

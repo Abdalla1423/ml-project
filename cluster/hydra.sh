@@ -19,6 +19,13 @@ export PYTHONPATH="$PWD/src:$PWD/Do-PFN-prior"
 DO_PFN_URL=https://github.com/jr2021/Do-PFN
 mkdir -p logs
 
+for tool in sbatch squeue; do
+    command -v "$tool" >/dev/null || {
+        echo "SLURM command '$tool' not found. Run this on hydra in a login shell (bash -l)." >&2
+        exit 1
+    }
+done
+
 usage() {
     sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
     exit 1
