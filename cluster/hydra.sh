@@ -117,6 +117,14 @@ EOF
 
 train)
     need_container
+    # Only one training job at a time: all write to the same output folder.
+    existing=$(squeue -h -u "$USER" -n dopfn-train -o "%i (%T)" | paste -sd ' ' -)
+    if [[ -n "$existing" ]]; then
+        echo "A training job is already queued or running: $existing." >&2
+        echo "Two jobs would overwrite each other's checkpoints. Wait for it, or cancel it first:" >&2
+        echo "  scancel <JOBID>" >&2
+        exit 1
+    fi
     # Default: gpu-2h (starts sooner); --long: gpu-5h. The job stops cleanly 15 min before the
     # limit, and the next 'train' continues from the checkpoint.
     partition=gpu-2h
