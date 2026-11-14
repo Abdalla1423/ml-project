@@ -1,9 +1,4 @@
-# Do-PFN dependencies
-dill
-
-# Do-PFN-prior dependencies
-# -r Do-PFN-prior/requirements.txt
-git+https://github.com/automl/TFM-Playground.git
-
-# Install local projects
--e ./Do-PFN-prior
+# All dependencies are declared in pyproject.toml. This file only exists for `pip install -r`.
+# It installs our package `dopfn` plus the copied Do-PFN-prior package `dopfnprior`
+# (Do-PFN-prior/), the test tools, and the extras for converting the case studies.
+-e .[dev,case-studies]

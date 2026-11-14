@@ -1,9 +1,43 @@
-# Prior config (owner: A). Defaults from paper Appendix C / D.1, see docs/paper-notes.md.
+# Prior config (owner: A). Loaded by dopfn.data.prior.load_prior_config into PriorConfig.
+# The values here equal the PriorConfig defaults (checked by tests/test_data.py).
+#
+# `graph` and `scm` use the Do-PFN-prior config format and override its defaults key by key, see
+# Do-PFN-prior/dopfnprior/configs/default_config.py. The SCM activation functions are
+# always Do-PFN-prior's (Python classes, not expressible in YAML).
 seed: 0
-n_nodes_max: 10            # v1: up to 10, v1.1: up to 60
-nonlinearities: [square, relu, tanh]
-root_noise_std: [1.0, 3.0]  # sigma_exo ~ U[1, 3]
-noise_scale: 0.3            # sigma_eps = 0.3 * beta
-noise_beta: [1.0, 5.0]      # beta ~ Beta(1, 5)
-m_min: 10
-m_max: 2200
+
+graph:
+  num_nodes:          # nodes of the original graph, before the treatment node is added
+    distribution: discrete_uniform
+    distribution_parameters: {low: 3, high: 10}
+  edge_prob:
+    distribution: logarithmic
+    distribution_parameters: {low: 0.25, high: 0.5}
+  features_per_node:
+    distribution: discrete_uniform
+    distribution_parameters: {low: 1, high: 3}
+  dropout_prob:       # probability that a feature is hidden
+    distribution: uniform
+    distribution_parameters: {low: 0.0, high: 0.3}
+
+scm:
+  root_std_dist:
+    distribution: shifted_exponential
+    distribution_parameters: {rate: 1.0, shift: 0.2}
+  non_root_std_dist:
+    distribution: shifted_exponential
+    distribution_parameters: {rate: 10.0, shift: 0.1}
+
+dataset:
+  # Paper, Algorithm 1: n_train ~ U{m_min, ..., m_max - min_test}, n_test = m_max - n_train.
+  # Explicit n_train / n_test arguments of load_data override this.
+  m_min: 10
+  m_max: 2200
+  min_test: 10
+
+treatment:
+  max_children: 3                # t gets 1..max_children children among the ancestors of y (and y)
+  treated_fraction: [0.0, 1.0]   # resample an SCM if the observational treated fraction is outside
+                                 # (off by default: imbalance is analysed in the report)
+
+max_attempts: 100                # resampling attempts per dataset before giving up
