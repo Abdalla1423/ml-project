@@ -9,6 +9,7 @@
 #   bash cluster/hydra.sh status         # your jobs and the end of the newest log
 #
 # Every step submits a SLURM job and returns immediately; `status` shows how it is going.
+# Run it in a normal login session (ssh <username>@hydra.ml.tu-berlin.de).
 # See cluster/README.md for the step-by-step guide.
 set -euo pipefail
 

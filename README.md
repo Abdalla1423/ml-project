@@ -19,7 +19,7 @@ src/dopfn/
   viz/         show()
 scripts/       command-line entry points
 configs/       YAML configs (data/, train/, eval/)
-cluster/       Hydra cluster: container recipe, laptop.sh (run from your computer), hydra.sh
+cluster/       Hydra cluster: container recipe and hydra.sh (all cluster steps)
 tests/         smoke tests per module
 docs/          paper notes, decisions, milestone requirements and status
 Do-PFN/, Do-PFN-prior/   copies of the upstream repos (see docs/third-party.md)
@@ -76,17 +76,17 @@ and CATE MSE of the model and of the difference of group means), `loss_curve.png
 
 ### On the Hydra cluster
 
-From your own computer, inside this repo (step-by-step guide: [cluster/README.md](cluster/README.md)):
+Step-by-step guide: [cluster/README.md](cluster/README.md). In short: copy the code to
+`~/ml-project` on hydra with `rsync`, log in with `ssh <username>@hydra.ml.tu-berlin.de`, then
 
 ```bash
-bash cluster/laptop.sh connect <cluster-username>   # once
-bash cluster/laptop.sh setup     # once: build the container
-bash cluster/laptop.sh test      # pytest on a CPU node
-bash cluster/laptop.sh data      # case studies -> /home/space/datasets/dopfn_case_studies
-bash cluster/laptop.sh smoke     # 10-minute GPU training test
-bash cluster/laptop.sh train     # 2 h job (--long: 5 h); run again to continue from the checkpoint
-bash cluster/laptop.sh status    # jobs and newest log
-bash cluster/laptop.sh results   # copy outputs/ from hydra
+cd ml-project
+bash cluster/hydra.sh setup     # once: build the container
+bash cluster/hydra.sh test      # pytest on a CPU node
+bash cluster/hydra.sh data      # case studies -> /home/space/datasets/dopfn_case_studies
+bash cluster/hydra.sh smoke     # 10-minute GPU training test
+bash cluster/hydra.sh train     # 2 h job (--long: 5 h); run again to continue from the checkpoint
+bash cluster/hydra.sh status    # jobs and newest log
 ```
 
 ## Docs
