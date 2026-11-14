@@ -130,7 +130,7 @@ train)
         esac
     done
     [[ -f "$config" ]] || { echo "Config not found: $config" >&2; exit 1; }
-    submit train --partition=$partition --gpus-per-node=1 --constraint="80gb|40gb" --ntasks-per-node=8 <<EOF
+    submit train --partition=$partition --gpus-per-node=1 --ntasks-per-node=8 <<EOF
 $header
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 apptainer exec --nv "$SIF" python scripts/train.py --config "$config" \\
