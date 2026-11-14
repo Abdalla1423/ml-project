@@ -3,9 +3,11 @@
 Adapted from nanoTabPFN (https://github.com/automl/nanoTabPFN, ``model.py`` at commit ``6071eec``,
 Copyright the nanoTabPFN authors, Apache License 2.0, see ``docs/third-party.md``). Changes:
 
-* Column 0 (the treatment) has its own encoder and a learned treatment embedding instead of the
-  shared feature encoder, and it is not normalized (it is binary). This is Do-PFN's only
-  architectural change to TabPFN (M5).
+* Column 0 (the treatment) gets a learned treatment embedding added to its cell embeddings, so the
+  model knows which column is the treatment. This is Do-PFN's only architectural change to TabPFN
+  (M5). The treatment is normalized and encoded like the other features: a separate treatment
+  encoder (raw or normalized) made the model stay about twice as long on the initial plateau where
+  it ignores the context (synthetic test, 3 seeds each).
 * All-NaN feature columns are padding: they are masked in the attention between features, so a
   batch can mix datasets with different numbers of features (decision D2).
 * ``y_ob`` is z-normalized per dataset inside the model; the output logits are over bins of the
@@ -135,7 +137,6 @@ class Model(torch.nn.Module):
         super().__init__()
         self.config = ModelConfig(n_bins, d_model, n_heads, n_layers, d_ff, dropout)
         self.feature_encoder = nn.Linear(1, d_model)
-        self.treatment_encoder = nn.Linear(1, d_model)
         self.treatment_embedding = nn.Parameter(torch.randn(d_model) * 0.02)
         self.target_encoder = nn.Linear(1, d_model)
         self.layers = nn.ModuleList(
@@ -181,21 +182,20 @@ class Model(torch.nn.Module):
         padding = torch.isnan(X).all(dim=1)  # (b, f)
         X = torch.nan_to_num(X, nan=0.0)
 
-        # Treatment column: raw 0/1 value, own encoder and treatment embedding (M5).
-        t = self.treatment_encoder(X[..., :1].unsqueeze(-1)) + self.treatment_embedding
-
-        # Other features: z-normalized with observational statistics, clipped (as nanoTabPFN).
-        x = X[..., 1:]
-        mean = x[:, :n_ob].mean(dim=1, keepdim=True)
-        std = x[:, :n_ob].std(dim=1, correction=0, keepdim=True).clamp_min(STD_EPS)
-        x = ((x - mean) / std).clamp(-FEATURE_CLIP, FEATURE_CLIP)
-        x = self.feature_encoder(x.unsqueeze(-1))
+        # Features (incl. the treatment): z-normalized with observational statistics, clipped (as
+        # nanoTabPFN), one shared encoder. The treatment column gets the treatment embedding (M5).
+        mean = X[:, :n_ob].mean(dim=1, keepdim=True)
+        std = X[:, :n_ob].std(dim=1, correction=0, keepdim=True).clamp_min(STD_EPS)
+        x = self.feature_encoder(((X - mean) / std).clamp(-FEATURE_CLIP, FEATURE_CLIP).unsqueeze(-1))
+        is_treatment = torch.zeros(f, 1, device=X.device, dtype=x.dtype)
+        is_treatment[0] = 1.0
+        x = x + is_treatment * self.treatment_embedding
 
         # Target column: normalized y_ob, query rows padded with 0 (= the observational mean).
         y = torch.cat([normalize_y(y_ob, y_ob), y_ob.new_zeros(b, r - n_ob)], dim=1)
         y = self.target_encoder(y.unsqueeze(-1).unsqueeze(-1))
 
-        h = torch.cat([t, x, y], dim=2)  # (b, r, f + 1, d_model)
+        h = torch.cat([x, y], dim=2)  # (b, r, f + 1, d_model)
         column_padding = torch.cat([padding, padding.new_zeros(b, 1)], dim=1)
         for layer in self.layers:
             h = layer(h, n_ob, column_padding)
