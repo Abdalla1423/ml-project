@@ -38,6 +38,10 @@ Status values: `OPEN` (not agreed), `AGREED`, `SUPERSEDED` (link the replacement
 - **Raised in:** ms1
 - **Question:** Pad features to a fixed max with zeros (TabPFN style)? Batch only datasets of equal
   row counts, or pad rows and mask them? Who pads (loader collate fn vs model adapter)?
+- **Proposal (implemented on `b/model`, 2026-11-14):** one `n_train` / `n_test` per batch (sampled
+  per training step), no row padding. Feature columns are padded with NaN by
+  `dopfn.model.adapter.to_model_batch`; the model masks all-NaN columns in the attention between
+  features, so padding provably does not change the output (`tests/test_model.py`).
 - **Affected modules:** data, model, training
 
 ### D3: How the observational/query split is passed to the model
@@ -46,6 +50,8 @@ Status values: `OPEN` (not agreed), `AGREED`, `SUPERSEDED` (link the replacement
 - **Question:** The sheet's `forward(X, y_ob)` implies the split index is `y_ob.shape[1]`
   (rows of `X` after that are queries). Is that enough, or do we pass an explicit index / mask
   (needed if rows are padded, see D2)?
+- **Proposal (implemented):** yes, `n_ob = y_ob.shape[1]`; rows are not padded (D2), so the sheet
+  signature `forward(X, y_ob)` is enough.
 - **Affected modules:** model, training, evaluation
 
 ### D4: Normalization of x and y, and who does it
@@ -54,6 +60,12 @@ Status values: `OPEN` (not agreed), `AGREED`, `SUPERSEDED` (link the replacement
 - **Question:** Standardize per dataset using observational statistics only? Done by
   `transformation` in `load_data` or inside the model/Regressor? The bar distribution bin borders
   depend on the y scale, and predictions must be mapped back to the original scale for metrics.
+- **Proposal (implemented):** no `transformation` needed for the model. Inside the model, features
+  (except the binary treatment) are z-normalized per column and `y_ob` per dataset, using only the
+  observational rows. The bar distribution lives on the normalized y scale; its borders are
+  quantiles of normalized prior targets and are stored in the model. `Regressor` maps predictions
+  back (`denormalize_y`), so its outputs are on the original scale. Targets outside the borders are
+  clamped into the edge bins (a full-support bar distribution would be the next step).
 - **Affected modules:** data, model, evaluation
 
 ### D5: Query covariates x^in: pre-treatment values with shared noise
