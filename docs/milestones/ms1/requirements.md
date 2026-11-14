@@ -1,8 +1,14 @@
 # Milestone 1 requirements: Data and Prototype
 
-Source: `sheet.pdf` in this folder (checked against the sheet on 2026-11-05). This checklist is used
-to verify the submission. Tick an item only when its acceptance criterion is met, and note the proof
-(test, file, figure) after it.
+Source: `sheet.pdf` in this folder (checked against the sheet on 2026-11-05 and 2026-11-14). This
+checklist is used to verify the submission. Tick an item only when its acceptance criterion is met,
+and note the proof (test, file, figure) after it.
+
+The items follow the sheet. The **"Accept:" criteria are our own**, stricter interpretation (tests,
+shapes, file paths), and so are details the sheet leaves open: the CATE definition (D7, from the
+paper), the treatment indicator (M5, from the paper), NLL as the loss (M6), normalized MSE (E1, from
+the paper) and the exact baselines (B1, B2; the sheet gives them as examples). The hard gates for
+submission are only what the sheet itself asks.
 
 **Grading:** Implementation 1 point, Report 9 points (Dataset overview 4, Baseline and evaluation 3,
 Discussion 2). If unsure about next steps, discuss them with the project supervisor.
@@ -17,8 +23,8 @@ prototype, starting from Do-PFN-prior. Results need not match the paper, but:
   simple baseline (B1, B2) on held-out prior datasets.
 - [ ] **G3. Built starting from Do-PFN-prior.** Do-PFN-prior only generates observational data and
   has no designated treatment; adding a binary treatment and sampling interventional data is our
-  work. Accept: our prior extends Do-PFN-prior (dependency or adapted code with attribution, not a
-  blind copy), noted in the report.
+  work. Accept: our prior builds on Do-PFN-prior (copied to `Do-PFN-prior/`, decision
+  D7) and adds the treatment and do(t) in `src/dopfn/data/`; the source is credited in the report.
 
 ## Code deliverables
 

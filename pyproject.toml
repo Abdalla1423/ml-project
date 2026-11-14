@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -18,10 +18,15 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest"]
+# Only needed to convert the Do-PFN case-study pickles (scripts/generate_data.py case-studies).
+case-studies = ["dill", "pandas", "scipy", "tqdm"]
 
+# Installs our package `dopfn` and the copied Do-PFN-prior package `dopfnprior`
+# (Do-PFN-prior/, see docs/third-party.md).
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["src", "Do-PFN-prior"]
+include = ["dopfn*", "dopfnprior*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src", "tests"]
+pythonpath = ["src", "Do-PFN-prior", "tests"]

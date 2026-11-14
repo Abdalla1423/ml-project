@@ -9,9 +9,9 @@
   https://github.com/automl/nanoTabPFN
 - **TFM-Playground** (nanoTabPFN training loop): https://github.com/automl/TFM-Playground
 
-Do not assume how these repos are structured. Inspect them before relying on any API.
-Do not copy them into our codebase. If one is needed, propose a git submodule or pip install and
-log the choice in `docs/decisions.md`.
+Do-PFN and Do-PFN-prior are copied into `Do-PFN/` and `Do-PFN-prior/` (see `docs/third-party.md` for commits
+and changes). Code from the other repos may be copied in the same way and adapted as needed (decision
+D7). Do not assume how a repo is structured. Inspect it before relying on any API.
 
 ## Literature
 - Robertson et al., "Do-PFN: In-Context Learning for Causal Effect Estimation", NeurIPS 2025,
