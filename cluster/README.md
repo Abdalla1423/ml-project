@@ -7,8 +7,8 @@ Works on macOS and Linux; on Windows, run it inside WSL.
 The official cluster documentation (partitions, GPUs, file systems, rules) is copied in
 [docs/hydra-cluster.md](../docs/hydra-cluster.md).
 
-**Before you start:** you have the cluster activation email (it contains your username), and the
-key you emailed for the account is `~/.ssh/id_rsa` on this computer.
+**Before you start:** you have the cluster activation email (it contains your username), and
+`ssh <username>@hydra.ml.tu-berlin.de` works from this computer.
 
 ## 1. Connect (once)
 

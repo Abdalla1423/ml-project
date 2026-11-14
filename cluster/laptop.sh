@@ -18,7 +18,8 @@ set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 HOST=${DOPFN_HOST:-hydra}
 REMOTE_DIR=${DOPFN_REMOTE_DIR:-ml-project}
-KEY=${DOPFN_SSH_KEY:-$HOME/.ssh/id_rsa}
+# Optional: a specific private key. By default ssh picks the key itself (as with a direct `ssh`).
+KEY=${DOPFN_SSH_KEY:-}
 # Fail after 15 s instead of hanging when hydra does not answer.
 SSH_OPTS=(-o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4)
 
@@ -35,8 +36,11 @@ usage() {
 connect() {
     local user=${1:-}
     [[ -n "$user" ]] || die "Give your cluster username: bash cluster/laptop.sh connect <username>"
-    [[ -f "$KEY" ]] || die "No ssh key at $KEY. Use the key whose .pub file you emailed for the account
-       (or set DOPFN_SSH_KEY=/path/to/private/key)."
+    local identity=""
+    if [[ -n "$KEY" ]]; then
+        [[ -f "$KEY" ]] || die "DOPFN_SSH_KEY is set, but there is no file $KEY."
+        identity="   IdentityFile $KEY"
+    fi
     mkdir -p "$HOME/.ssh"
     chmod 700 "$HOME/.ssh"
     touch "$HOME/.ssh/config"
@@ -50,18 +54,21 @@ connect() {
 Host hydra
    HostName hydra.ml.tu-berlin.de
    User $user
-   IdentityFile $KEY
+$identity
 Host karkinos
    HostName karkinos.ml.tu-berlin.de
    User $user
-   IdentityFile $KEY
+$identity
 EOF
         echo "Added 'hydra' and 'karkinos' to ~/.ssh/config."
     fi
     echo "Connecting to $HOST ..."
     ssh "${SSH_OPTS[@]}" -o StrictHostKeyChecking=accept-new "$HOST" 'echo "Connected to $(hostname) as $USER."' ||
-        die "Could not connect. Check the username from the activation email and that $KEY is
-       the key you emailed. If hydra is rebooting (Mondays 01:00), try: DOPFN_HOST=karkinos bash cluster/laptop.sh connect $user"
+        die "Could not connect. Check the username from the activation email. If plain
+       'ssh $user@hydra.ml.tu-berlin.de' works with a key that is not your default one, run
+       DOPFN_SSH_KEY=~/.ssh/<that-key> bash cluster/laptop.sh connect $user
+       (remove the 'Added by ml-project' block from ~/.ssh/config first). If hydra is rebooting
+       (Mondays 01:00), try: DOPFN_HOST=karkinos bash cluster/laptop.sh connect $user"
     echo "Done. Next: bash cluster/laptop.sh setup"
 }
 
