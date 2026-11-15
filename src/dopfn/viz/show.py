@@ -135,12 +135,13 @@ def show(
     predictions: Sequence[np.ndarray | None] | None = None,
     feature: int = 1,
     title: str | None = None,
+    names: Sequence[str] | None = None,
 ) -> Figure:
     """Return one row of plots per loader sample and optionally save the figure.
 
-    Graphs and outcome prediction vectors follow the order of the samples.
-    `feature` selects the plotted column of X. With treatment-only data,
-    the horizontal axis is the row index.
+    Graphs, outcome prediction vectors and row names follow the order of the samples.
+    Without `graphs` the graph column is left out. `feature` selects the plotted
+    column of X. With treatment-only data, the horizontal axis is the row index.
     """
     if not x:
         raise ValueError("show requires at least one dataset.")
@@ -148,6 +149,8 @@ def show(
         raise ValueError("Pass one graph or None per dataset.")
     if predictions is not None and len(predictions) != len(x):
         raise ValueError("Pass one prediction vector or None per dataset.")
+    if names is not None and len(names) != len(x):
+        raise ValueError("Pass one name per dataset.")
     if feature < 1:
         raise ValueError("feature must select a covariate column (index >= 1).")
 
@@ -163,21 +166,24 @@ def show(
                 if len(overlays[i]) != len(samples[i][3]):
                     raise ValueError("Each prediction vector must align with y_in.")
 
+    columns = 2 if graphs is None else 3
     fig, axes = plt.subplots(
-        len(x), 3, figsize=(11.4, 3.6 * len(x)), squeeze=False, layout="constrained"
+        len(x), columns, figsize=(3.8 * columns, 3.6 * len(x)), squeeze=False, layout="constrained"
     )
     if title:
         fig.suptitle(title, fontweight="bold")
     for i, (X_ob, y_ob, X_in, y_in, _) in enumerate(samples):
-        graph_ax, obs_ax, in_ax = axes[i]
-        graph = None if graphs is None else graphs[i]
-        graph_ax.set_title(f"Dataset {i + 1} · causal graph", loc="left")
-        if graph is None:
-            graph_ax.text(0.5, 0.5, "Graph unavailable", ha="center", va="center",
-                          transform=graph_ax.transAxes, color="#596774")
-        else:
-            _draw_scm(graph, graph_ax)
-        graph_ax.set_axis_off()
+        obs_ax, in_ax = axes[i][-2:]
+        label = f"Dataset {i + 1}" if names is None else names[i]
+        if graphs is not None:
+            graph_ax = axes[i][0]
+            graph_ax.set_title(f"{label} · causal graph", loc="left")
+            if graphs[i] is None:
+                graph_ax.text(0.5, 0.5, "Graph unavailable", ha="center", va="center",
+                              transform=graph_ax.transAxes, color="#596774")
+            else:
+                _draw_scm(graphs[i], graph_ax)
+            graph_ax.set_axis_off()
 
         has_covariates = X_ob.shape[1] > 1
         x_ob = X_ob[:, feature] if has_covariates else np.arange(len(X_ob))
@@ -185,7 +191,7 @@ def show(
         obs_ax.sharex(in_ax)
         obs_ax.sharey(in_ax)
         for ax, coords, X, y, heading in (
-            (obs_ax, x_ob, X_ob, y_ob, "Observational"),
+            (obs_ax, x_ob, X_ob, y_ob, "Observational" if graphs is not None else f"{label} · observational"),
             (in_ax, x_in, X_in, y_in, "Interventional"),
         ):
             for t, color in enumerate(("#0072B2", "#B44A00")):

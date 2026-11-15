@@ -25,6 +25,7 @@ import networkx as nx
 import numpy as np
 import torch
 import yaml
+from sklearn.linear_model import LogisticRegression
 
 from dopfn.baselines import GroupMeanDifference, ObservationalRegression
 from dopfn.data import load_data
@@ -101,6 +102,21 @@ def plot_training(results: Path, out: Path) -> dict[str, float]:
 # --- Prior exploration ---------------------------------------------------------------------------
 
 
+def no_overlap_share(X_ob: np.ndarray) -> float:
+    """Share of context rows whose estimated propensity P(t=1 | covariates) is below 0.05 or above 0.95.
+
+    The propensity comes from a logistic regression on the standardized covariates. For such rows the
+    data hold (almost) no comparable units of the other treatment group.
+    """
+    t, covariates = X_ob[:, 0], X_ob[:, 1:]
+    if covariates.shape[1] == 0 or t.min() == t.max():
+        return float("nan")
+    scale = covariates.std(axis=0)
+    covariates = np.clip((covariates - covariates.mean(axis=0)) / np.where(scale > 0, scale, 1.0), -10, 10)
+    propensity = LogisticRegression(max_iter=500).fit(covariates, t).predict_proba(covariates)[:, 1]
+    return float(np.mean((propensity < 0.05) | (propensity > 0.95)))
+
+
 def prior_statistics(n_datasets: int) -> dict[str, Any]:
     """Describe the SCMs and datasets that the prior generates (sizes as in training)."""
     sampler = PriorSampler()
@@ -130,9 +146,12 @@ def prior_statistics(n_datasets: int) -> dict[str, Any]:
         stats["has_mediator"].append(float(bool(mediators)))
         stats["observed_mediator"].append(float(bool(mediators & visible)))
         stats["only_treatment"].append(float(data.X_ob.shape[1] == 1))
+        stats["no_overlap"].append(no_overlap_share(data.X_ob.numpy().astype(float)))
     summary: dict[str, Any] = {"n_datasets": n_datasets}
-    for key in ("nodes", "features", "rows_context", "rows_query", "treated_fraction", "abs_ate_in_std"):
-        summary[key] = [float(np.quantile(stats[key], q)) for q in (0.0, 0.25, 0.5, 0.75, 1.0)]
+    for key in ("nodes", "features", "rows_context", "rows_query", "treated_fraction", "abs_ate_in_std",
+                "no_overlap"):
+        summary[key] = [float(np.nanquantile(stats[key], q)) for q in (0.0, 0.25, 0.5, 0.75, 1.0)]
+    summary["mostly_no_overlap"] = float(np.nanmean(np.array(stats["no_overlap"]) > 0.5))
     for key in ("one_group", "few_treated", "no_effect", "heterogeneous", "has_confounder",
                 "hidden_confounder", "has_mediator", "observed_mediator", "only_treatment"):
         summary[key] = float(np.mean(stats[key]))
@@ -146,13 +165,15 @@ def write_prior_table(stats: dict[str, Any], out: Path) -> None:
                      ("rows_context", "Context rows $n_{ob}$", "{:.0f}"),
                      ("rows_query", "Query rows $n_{in}$", "{:.0f}"),
                      ("treated_fraction", "Treated fraction in the context", "{:.2f}"),
-                     ("abs_ate_in_std", r"$|\mathrm{ATE}| / \mathrm{std}(y_{ob})$", "{:.2f}"))
+                     ("abs_ate_in_std", r"$|\mathrm{ATE}| / \mathrm{std}(y_{ob})$", "{:.2f}"),
+                     ("no_overlap", "Context rows without overlap (propensity outside $[0.05, 0.95]$)", "{:.2f}"))
     share_rows = (("has_confounder", "Common cause of $t$ and $y$ exists"),
                   ("hidden_confounder", "\\quad at least one of them hidden"),
                   ("has_mediator", "Mediator between $t$ and $y$ exists"),
                   ("observed_mediator", "\\quad at least one of them observed"),
                   ("no_effect", "No causal path $t \\to y$ (true effect is 0)"),
                   ("heterogeneous", "Effect differs between units"),
+                  ("mostly_no_overlap", "More than half of the context rows without overlap"),
                   ("few_treated", "Smaller treatment group below 5\\,\\% of the context"),
                   ("one_group", "Only one treatment group in the context"),
                   ("only_treatment", "No covariates ($X$ is only the treatment)"))
@@ -198,6 +219,17 @@ def plot_examples(model: Regressor, out: Path) -> int:
                title="Predictions of the trained model for the interventional outcomes (crosses)")
     save(fig, out, "fig_predictions")
     return len(examples)
+
+
+def plot_case_studies(model: Regressor, out: Path) -> None:
+    """One dataset of every case study (first file), in two figures of three; with model predictions."""
+    datasets = {case: next(iter(load_data(case, n_datasets=1))) for case in CASES}
+    for part, cases in (("a", CASES[:3]), ("b", CASES[3:])):
+        chosen = [datasets[c] for c in cases]
+        names = [TITLES[c] for c in cases]
+        save(show(chosen, names=names), out, f"fig_case_studies_{part}")
+        predictions = [model.fit(d.X_ob, d.y_ob).predict(d.X_in) for d in chosen]
+        save(show(chosen, names=names, predictions=predictions), out, f"fig_case_studies_{part}_predictions")
 
 
 # --- Scores per dataset --------------------------------------------------------------------------
@@ -352,8 +384,13 @@ def write_setup_table(checkpoint: dict[str, Any], n_parameters: int, training: d
 
 
 def write_index(out: Path, training: dict[str, float], stats: dict[str, Any], metrics: dict[str, Any],
-                rates: dict[str, dict[str, float]], n_parameters: int, n_examples: int) -> None:
+                rates: dict[str, dict[str, float]], n_parameters: int, n_examples: int,
+                rows: list[dict[str, Any]]) -> None:
     """Index of all report material with suggested captions and the key numbers."""
+    shown = {(r["dataset"], r["model"]): r["outcome_nmse"] for r in rows if int(r["index"]) == 0}
+    example = lambda case: (f"{TITLES[case]}: our model {fmt(shown[case, 'dopfn'])}, regression "  # noqa: E731
+                            f"{fmt(shown[case, 'observational_regression'])}, group means "
+                            f"{fmt(shown[case, 'group_mean_difference'])}")
     prior = metrics["prior"]
     pct = lambda key: f"{100 * stats[key]:.0f} %"  # noqa: E731
     others = [c for c in CASES if c != "observed_mediator"]
@@ -376,6 +413,8 @@ and PyTorch version), so prior numbers differ in the third decimal.
 | File | Section | Suggested caption |
 |---|---|---|
 | `fig_prior_examples` | Exploration | {n_examples} datasets sampled from our prior. Left: the sampled causal graph with treatment `t` and outcome `y`. Middle: observational data, colored by treatment. Right: interventional outcomes of the query rows under do(t). Horizontal axis: first covariate. |
+| `fig_case_studies_a`, `fig_case_studies_b` | Exploration | One dataset of each case study (first file of the Do-PFN case studies): observational data colored by treatment, and the interventional outcomes of the query rows. The causal graphs are not stored with the data; see Figure 3 of the Do-PFN paper. With a single column (treatment only) the horizontal axis is the row index. |
+| `fig_case_studies_a_predictions`, `fig_case_studies_b_predictions` | Results, "where do they fail" | The same datasets with the predictions of the trained model (crosses). These are single datasets, not typical results: Front-Door and Confounder + Mediator are predicted well; in the Observed Confounder and Back-Door examples the treatment groups do not overlap in the covariate, and the predictions for the unobserved combination are far from the truth. |
 | `fig_training` | Results, overfitting | Left: training and validation NLL during pre-training ({training['steps']} steps, {training['minutes']:.0f} min). Right: CATE error on the validation datasets, compared with the difference of group means. |
 | `fig_nmse_boxplots` | Results | Normalized MSE per dataset (log scale) on held-out prior data and the six case studies, for the interventional outcome (top) and the CATE (bottom). Boxes: quartiles, line: median. |
 | `fig_predictions` | Results | Predicted interventional outcomes of the trained model (crosses) on top of the true interventional data, for the datasets of the first figure. |
@@ -407,13 +446,24 @@ Case studies (100 datasets each)
 - Outcome: lowest mean error in five of six case studies (all except Observed Mediator).
 - CATE: lowest mean error in four of six. Not on Unobserved Confounder ({fmt(metrics['unobserved_confounder']['dopfn']['cate_nmse'])} vs {fmt(metrics['unobserved_confounder']['group_mean_difference']['cate_nmse'])} for group means; the effect is not identifiable there) and not on Observed Mediator.
 - Per dataset (`tab_win_rates.tex`): our model beats both baselines at once on {span('outcome_nmse')} of the datasets of a case study for the outcome and on {span('cate_nmse')} for the CATE (Observed Mediator: {100 * rates['observed_mediator']['outcome_nmse']:.0f} % and {100 * rates['observed_mediator']['cate_nmse']:.0f} %). The lower mean error therefore comes from fewer large errors, not from winning on every dataset.
+- The datasets shown in `fig_case_studies_*` are the first file of each case study. Their outcome NMSE: {'; '.join(example(c) for c in CASES)}.
+- Visible failure in those figures: in the Observed Confounder and Back-Door examples the treatment in the context is (almost) a threshold of the covariate, so the two groups do not overlap, and the query rows ask for the treatment that was never observed at that covariate value. There the model predicts roughly the outcome level of the queried treatment group in the context instead of following the covariate. Without overlap the data alone cannot separate the effect of the treatment from the effect of the covariate.
 - Observed Mediator: the difference of group means is the right estimator (no confounding) and is best. Our mean error ({fmt(metrics['observed_mediator']['dopfn']['outcome_nmse'])}) comes from one dataset whose interventional outcomes are almost constant (range 0.002), so dividing by the squared range inflates the error; the median is {fmt(metrics['observed_mediator']['dopfn']['outcome_nmse_median'])} (group means {fmt(metrics['observed_mediator']['group_mean_difference']['outcome_nmse_median'])}).
 
 What the prior generates ({stats['n_datasets']} datasets, `tab_prior_stats.tex`)
 - A common cause of treatment and outcome exists in {pct('has_confounder')} of the datasets, and in {pct('hidden_confounder')} at least one is hidden.
 - A mediator exists in {pct('has_mediator')}; in {pct('observed_mediator')} one is among the covariates.
 - In {pct('no_effect')} there is no causal path from treatment to outcome (true effect 0).
+- Overlap: in the median dataset {100 * stats['no_overlap'][2]:.0f} % of the context rows have an estimated propensity outside [0.05, 0.95] (logistic regression of the treatment on the covariates); in {pct('mostly_no_overlap')} of the datasets this holds for more than half of the rows. A likely reason (not tested): most datasets contain a covariate that is caused by the treatment (a mediator or another descendant), which separates the two groups.
+- Treatment balance: the treated fraction is between {stats['treated_fraction'][0]:.2f} and {stats['treated_fraction'][4]:.2f} (median {stats['treated_fraction'][2]:.2f}).
 - Data quality: {pct('one_group')} of the contexts contain only one treatment group, {pct('few_treated')} have a group below 5 %, and {pct('only_treatment')} have no covariates at all.
+
+Preprocessing and representation (facts about the code)
+- No `transformation` is passed to `load_data`; all preprocessing happens inside the model, so it is the same in training and at prediction time.
+- Every feature column is standardized with the mean and standard deviation of the context rows and clipped to ±100. The outcome is standardized with the context mean and standard deviation, and predictions are mapped back to the original scale.
+- The treatment is column 0 and gets an additional learned embedding, so the model can tell it apart from the covariates.
+- Datasets of different size and shape: the number of rows is free; within a batch, missing feature columns are padded with NaN and masked in the attention between features. The prediction for a query row does not depend on the other query rows or on the order of the context rows.
+- Train/test separation: training, validation and evaluation datasets come from different seed streams (training seed 0, validation stream 1, evaluation seed 1000); the case studies are never used for training.
 
 Limits to state
 - Results come from one training run with one seed.
@@ -447,11 +497,12 @@ def main() -> None:
     stats = prior_statistics(args.limit * 10 if args.limit else args.n_prior_stats)
     write_prior_table(stats, args.out)
     n_examples = plot_examples(model, args.out)
+    plot_case_studies(model, args.out)
     rows = score_all(model, args.results, args.out, args.limit)
     plot_boxplots(rows, args.out)
     rates = win_rates(rows)
     write_results_tables(metrics, rates, args.out)
-    write_index(args.out, training, stats, metrics, rates, n_parameters, n_examples)
+    write_index(args.out, training, stats, metrics, rates, n_parameters, n_examples, rows)
     print(f"Report material written to {args.out}")
 
 

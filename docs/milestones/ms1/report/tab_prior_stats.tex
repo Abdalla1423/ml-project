@@ -8,6 +8,7 @@ Context rows $n_{ob}$ & 10 & 550 & 1126 & 1679 & 2190 \\
 Query rows $n_{in}$ & 10 & 521 & 1074 & 1650 & 2190 \\
 Treated fraction in the context & 0.19 & 0.48 & 0.50 & 0.51 & 0.89 \\
 $|\mathrm{ATE}| / \mathrm{std}(y_{ob})$ & 0.00 & 0.06 & 0.31 & 0.90 & 1.95 \\
+Context rows without overlap (propensity outside $[0.05, 0.95]$) & 0.00 & 0.00 & 0.21 & 0.75 & 1.00 \\
 \midrule
 Property & \multicolumn{5}{r}{share of datasets} \\
 \midrule
@@ -17,6 +18,7 @@ Mediator between $t$ and $y$ exists & \multicolumn{5}{r}{83.5\,\%} \\
 \quad at least one of them observed & \multicolumn{5}{r}{83.1\,\%} \\
 No causal path $t \to y$ (true effect is 0) & \multicolumn{5}{r}{0.0\,\%} \\
 Effect differs between units & \multicolumn{5}{r}{95.5\,\%} \\
+More than half of the context rows without overlap & \multicolumn{5}{r}{37.0\,\%} \\
 Smaller treatment group below 5\,\% of the context & \multicolumn{5}{r}{0.0\,\%} \\
 Only one treatment group in the context & \multicolumn{5}{r}{0.0\,\%} \\
 No covariates ($X$ is only the treatment) & \multicolumn{5}{r}{0.0\,\%} \\
