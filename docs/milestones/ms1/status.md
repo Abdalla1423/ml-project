@@ -5,6 +5,9 @@ Reference requirement IDs from `requirements.md` (e.g. M1, R3).
 
 ## Log
 
+- 2026-11-15 (A and B, on the cluster): D11 checked. The eight converted case studies are in
+  `/home/space/datasets/dopfn_case_studies` (100 files each in `Common_Effect`, folders
+  `drwxrwxr-x`, written by `cluster/hydra.sh data`, which runs `chmod -R a+rX`).
 - 2026-11-15 (B, branch `b/model`, taking over C's part): C's branch `part-c/evaluation` (baselines,
   metrics, harness, `show`, `scripts/evaluate.py`) merged. `evaluate.py` fixed to use the real
   `load_data` interface (it passed `with_graph`, which does not exist), with `--out-dir`, `--device`

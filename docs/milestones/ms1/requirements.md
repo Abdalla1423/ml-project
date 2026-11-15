@@ -57,9 +57,9 @@ in `dopfn.data`.
 - [ ] **D9. `transformation` applied to every dataset.** Accept: a test with a dummy transformation
   confirms it is applied to every yielded item.
 - [ ] **D10. `n_train` / `n_test` respected.** Accept: test that the number of rows / datasets matches.
-- [ ] **D11. Data on the cluster.** Generated/case-study data stored in
+- [x] **D11. Data on the cluster.** Generated/case-study data stored in
   `/home/space/datasets/<dataset>` and readable by everyone (`chmod -R a+r`). Accept: manual check on
-  the cluster, noted in `status.md`.
+  the cluster, noted in `status.md`. Proof: `status.md`, 2026-11-15.
 
 ### Visualization (owner: C)
 
