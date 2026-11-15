@@ -15,6 +15,8 @@ and PyTorch version), so prior numbers differ in the third decimal.
 | File | Section | Suggested caption |
 |---|---|---|
 | `fig_prior_examples` | Exploration | 3 datasets sampled from our prior. Left: the sampled causal graph with treatment `t` and outcome `y`. Middle: observational data, colored by treatment. Right: interventional outcomes of the query rows under do(t). Horizontal axis: first covariate. |
+| `fig_case_studies_a`, `fig_case_studies_b` | Exploration | One dataset of each case study (first file of the Do-PFN case studies): observational data colored by treatment, and the interventional outcomes of the query rows. The causal graphs are not stored with the data; see Figure 3 of the Do-PFN paper. With a single column (treatment only) the horizontal axis is the row index. |
+| `fig_case_studies_a_predictions`, `fig_case_studies_b_predictions` | Results, "where do they fail" | The same datasets with the predictions of the trained model (crosses). These are single datasets, not typical results: Front-Door and Confounder + Mediator are predicted well; in the Observed Confounder and Back-Door examples the treatment groups do not overlap in the covariate, and the predictions for the unobserved combination are far from the truth. |
 | `fig_training` | Results, overfitting | Left: training and validation NLL during pre-training (30000 steps, 92 min). Right: CATE error on the validation datasets, compared with the difference of group means. |
 | `fig_nmse_boxplots` | Results | Normalized MSE per dataset (log scale) on held-out prior data and the six case studies, for the interventional outcome (top) and the CATE (bottom). Boxes: quartiles, line: median. |
 | `fig_predictions` | Results | Predicted interventional outcomes of the trained model (crosses) on top of the true interventional data, for the datasets of the first figure. |
@@ -46,13 +48,24 @@ Case studies (100 datasets each)
 - Outcome: lowest mean error in five of six case studies (all except Observed Mediator).
 - CATE: lowest mean error in four of six. Not on Unobserved Confounder (0.0476 vs 0.0441 for group means; the effect is not identifiable there) and not on Observed Mediator.
 - Per dataset (`tab_win_rates.tex`): our model beats both baselines at once on 46–53 % of the datasets of a case study for the outcome and on 24–43 % for the CATE (Observed Mediator: 26 % and 15 %). The lower mean error therefore comes from fewer large errors, not from winning on every dataset.
+- The datasets shown in `fig_case_studies_*` are the first file of each case study. Their outcome NMSE: Observed Confounder: our model 0.2050, regression 0.0431, group means 0.2873; Observed Mediator: our model 0.0308, regression 0.0512, group means 0.0307; Confounder + Mediator: our model 0.0395, regression 0.0149, group means 0.1739; Unobserved Confounder: our model 0.0479, regression 0.0427, group means 0.0538; Front-Door: our model 0.0021, regression 0.0131, group means 0.0184; Back-Door: our model 0.0887, regression 0.0736, group means 0.1152.
+- Visible failure in those figures: in the Observed Confounder and Back-Door examples the treatment in the context is (almost) a threshold of the covariate, so the two groups do not overlap, and the query rows ask for the treatment that was never observed at that covariate value. There the model predicts roughly the outcome level of the queried treatment group in the context instead of following the covariate. Without overlap the data alone cannot separate the effect of the treatment from the effect of the covariate.
 - Observed Mediator: the difference of group means is the right estimator (no confounding) and is best. Our mean error (90.4) comes from one dataset whose interventional outcomes are almost constant (range 0.002), so dividing by the squared range inflates the error; the median is 0.0191 (group means 0.0100).
 
 What the prior generates (1000 datasets, `tab_prior_stats.tex`)
 - A common cause of treatment and outcome exists in 26 % of the datasets, and in 1 % at least one is hidden.
 - A mediator exists in 84 %; in 83 % one is among the covariates.
 - In 0 % there is no causal path from treatment to outcome (true effect 0).
+- Overlap: in the median dataset 21 % of the context rows have an estimated propensity outside [0.05, 0.95] (logistic regression of the treatment on the covariates); in 37 % of the datasets this holds for more than half of the rows. A likely reason (not tested): most datasets contain a covariate that is caused by the treatment (a mediator or another descendant), which separates the two groups.
+- Treatment balance: the treated fraction is between 0.19 and 0.89 (median 0.50).
 - Data quality: 0 % of the contexts contain only one treatment group, 0 % have a group below 5 %, and 0 % have no covariates at all.
+
+Preprocessing and representation (facts about the code)
+- No `transformation` is passed to `load_data`; all preprocessing happens inside the model, so it is the same in training and at prediction time.
+- Every feature column is standardized with the mean and standard deviation of the context rows and clipped to ±100. The outcome is standardized with the context mean and standard deviation, and predictions are mapped back to the original scale.
+- The treatment is column 0 and gets an additional learned embedding, so the model can tell it apart from the covariates.
+- Datasets of different size and shape: the number of rows is free; within a batch, missing feature columns are padded with NaN and masked in the attention between features. The prediction for a query row does not depend on the other query rows or on the order of the context rows.
+- Train/test separation: training, validation and evaluation datasets come from different seed streams (training seed 0, validation stream 1, evaluation seed 1000); the case studies are never used for training.
 
 Limits to state
 - Results come from one training run with one seed.

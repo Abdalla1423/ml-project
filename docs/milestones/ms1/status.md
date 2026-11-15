@@ -5,6 +5,11 @@ Reference requirement IDs from `requirements.md` (e.g. M1, R3).
 
 ## Log
 
+- 2026-11-15 (B): report material extended for the sheet's "Dataset overview": case-study example
+  figures made with `show` (new `names` argument; without `graphs` the graph column is left out) and
+  an overlap statistic in `tab_prior_stats.tex`. The case-study examples also show a failure: with
+  no overlap between the treatment groups (Observed Confounder, Back-Door examples) the predictions
+  for the unobserved treatment are far off.
 - 2026-11-15 (B): report material in `docs/milestones/ms1/report/` (figures, LaTeX tables, index
   with captions and key numbers), created by `scripts/make_report_material.py` (V3, V5). Chinese
   comments in C's files translated; `.cluster-user` removed. Open: the report itself, S3 (repo is

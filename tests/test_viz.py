@@ -77,8 +77,10 @@ def test_show_accepts_items_from_load_data(tmp_path: Path) -> None:  # req V2, V
 
     samples = list(load_data("prior", n_datasets=2, seed=3, n_train=40, n_test=20))
     outfile = tmp_path / "prior.png"
-    figure = show(samples, outfile)
+    figure = show(samples, outfile, names=["first", "second"])
     try:
+        assert len(figure.axes) == 4  # no graphs: only the two data columns per dataset
+        assert figure.axes[0].get_title(loc="left") == "first · observational"
         assert outfile.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
     finally:
         plt.close(figure)
