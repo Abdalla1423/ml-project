@@ -16,15 +16,18 @@ Discussion 2). If unsure about next steps, discuss them with the project supervi
 **Goal.** Understand the paper and the data. Build a data loader, a visualization tool and a working
 prototype, starting from Do-PFN-prior. Results need not match the paper, but:
 
-- [ ] **G1. Pre-training converges.** Training loss decreases and plateaus on prior data.
+- [x] **G1. Pre-training converges.** Training loss decreases and plateaus on prior data.
   Accept: loss curve (train + validation) saved by `scripts/train.py` and shown in the report.
-- [ ] **G2. Trained model beats simple baselines on prior data.** Accept: `scripts/evaluate.py`
+  Proof: `docs/milestones/ms1/results/loss_curve.png` and `train_metrics.csv` (cluster run, 30000 steps, 92 min): validation NLL 1.43 → 1.07, flat over the last 3000 steps (1.0707 → 1.0704). Still to do: show the figure in the report.
+- [x] **G2. Trained model beats simple baselines on prior data.** Accept: `scripts/evaluate.py`
   reports lower normalized MSE (interventional outcome and/or CATE) for the prototype than for every
   simple baseline (B1, B2) on held-out prior datasets.
-- [ ] **G3. Built starting from Do-PFN-prior.** Do-PFN-prior only generates observational data and
+  Proof: `docs/milestones/ms1/results/metrics.json`, 256 held-out prior datasets: outcome NMSE 0.0182 (regression 0.0272, group means 0.0274), CATE NMSE 0.0047 (0.0209, 0.0082).
+- [x] **G3. Built starting from Do-PFN-prior.** Do-PFN-prior only generates observational data and
   has no designated treatment; adding a binary treatment and sampling interventional data is our
   work. Accept: our prior builds on Do-PFN-prior (copied to `Do-PFN-prior/`, decision
   D7) and adds the treatment and do(t) in `src/dopfn/data/`; the source is credited in the report.
+  Proof: `Do-PFN-prior/` and `docs/third-party.md`; treatment and do(t) in `src/dopfn/data/graph_extension.py`, `intervention.py`, `prior.py`. Still to do: credit the source in the report.
 
 ## Code deliverables
 
@@ -33,30 +36,40 @@ prototype, starting from Do-PFN-prior. Results need not match the paper, but:
 Signature: `def load_data(dataset='prior', transformation=None, n_train=None, n_test=None, ...)`
 in `dopfn.data`.
 
-- [ ] **D1. Signature.** `load_data` exists with exactly the parameters `dataset='prior'`,
+- [x] **D1. Signature.** `load_data` exists with exactly the parameters `dataset='prior'`,
   `transformation=None`, `n_train=None`, `n_test=None` (plus extras). Accept: `tests/test_data.py`
   checks the signature.
-- [ ] **D2. One sample = one whole dataset.** Accept: each yielded item holds the full observational
+  Proof: `test_load_data_signature`.
+- [x] **D2. One sample = one whole dataset.** Accept: each yielded item holds the full observational
   and interventional tables of one dataset. Verified by `tests/test_data.py`.
-- [ ] **D3. Lazy iterable.** Accept: return value is an iterable/generator; datasets are produced on
+  Proof: `test_prior_yields_whole_valid_datasets`.
+- [x] **D3. Lazy iterable.** Accept: return value is an iterable/generator; datasets are produced on
   demand (no full materialization). Verified by `tests/test_data.py`.
-- [ ] **D4. Yield format.** Each item contains `(X_ob, y_ob, X_in, y_in)`, the observational outcomes
+  Proof: `test_load_data_is_lazy`.
+- [x] **D4. Yield format.** Each item contains `(X_ob, y_ob, X_in, y_in)`, the observational outcomes
   of the query points (for Dont-PFN in ms2), and the ground-truth CATE of the query points.
   Accept: `tests/test_data.py` checks presence and consistent shapes.
-- [ ] **D5. Treatment in column 0 of X.** Accept: column 0 of `X_ob` and `X_in` is binary {0,1};
+  Proof: `test_prior_yields_whole_valid_datasets`.
+- [x] **D5. Treatment in column 0 of X.** Accept: column 0 of `X_ob` and `X_in` is binary {0,1};
   verified by `tests/test_data.py`.
-- [ ] **D6. `dataset='prior'`.** Samples an SCM, an observational dataset and interventional query
+  Proof: `test_prior_yields_whole_valid_datasets`, `test_case_study_split_follows_do_pfn`.
+- [x] **D6. `dataset='prior'`.** Samples an SCM, an observational dataset and interventional query
   points *from the same SCM*. Accept: `tests/test_data.py`; for a fixed seed the CATE and `y_in`
   are consistent with the SCM.
-- [ ] **D7. Interventional query data correct.** `y_in` computed under do(t) (incoming edges of t cut,
+  Proof: `test_prior_queries_consistent_with_scm`, `test_prior_is_reproducible_and_datasets_differ`.
+- [x] **D7. Interventional query data correct.** `y_in` computed under do(t) (incoming edges of t cut,
   descendants recomputed, same noise as `x_in`, see `docs/decisions.md` D5). Ground-truth CATE =
   E[y|do(1),x] − E[y|do(0),x]. Accept: a test on a hand-built SCM with known effect.
-- [ ] **D8. Case studies from disk.** Each case study of the Do-PFN repo selectable with one value of
+  Proof: `test_known_effect_with_confounder`, `test_propagate_do_cuts_incoming_edges`.
+- [x] **D8. Case studies from disk.** Each case study of the Do-PFN repo selectable with one value of
   `dataset` (sheet example: `'observed_confounder'`), read from disk. Accept: `tests/test_data.py` loads every
   case study name (skipped if data is absent locally).
-- [ ] **D9. `transformation` applied to every dataset.** Accept: a test with a dummy transformation
+  Proof: `test_every_case_study_loads`; `test_real_case_studies_load` passed on the cluster (2026-11-15).
+- [x] **D9. `transformation` applied to every dataset.** Accept: a test with a dummy transformation
   confirms it is applied to every yielded item.
-- [ ] **D10. `n_train` / `n_test` respected.** Accept: test that the number of rows / datasets matches.
+  Proof: `test_transformation_applied_to_every_dataset`.
+- [x] **D10. `n_train` / `n_test` respected.** Accept: test that the number of rows / datasets matches.
+  Proof: `test_sizes_respected`, `test_case_study_sizes_seed_and_limits`.
 - [x] **D11. Data on the cluster.** Generated/case-study data stored in
   `/home/space/datasets/<dataset>` and readable by everyone (`chmod -R a+r`). Accept: manual check on
   the cluster, noted in `status.md`. Proof: `status.md`, 2026-11-15.
@@ -65,13 +78,16 @@ in `dopfn.data`.
 
 Signature: `def show(x, outfile=None, ...)` in `dopfn.viz`.
 
-- [ ] **V1. Signature.** `show(x, outfile=None, ...)` exists. Accept: `tests/test_viz.py`.
-- [ ] **V2. Input is a list of data points** (items as yielded by `load_data`). Accept: test calls
+- [x] **V1. Signature.** `show(x, outfile=None, ...)` exists. Accept: `tests/test_viz.py`.
+  Proof: `test_show_signature`.
+- [x] **V2. Input is a list of data points** (items as yielded by `load_data`). Accept: test calls
   `show` on a list from `load_data`.
+  Proof: `test_show_accepts_items_from_load_data`.
 - [ ] **V3. Visually pleasing image**, e.g. causal graph next to observational and interventional
   data. Accept: figures reviewed by the team and used in the report.
-- [ ] **V4. Optional save.** With `outfile` set, the image is written to that path. Accept:
+- [x] **V4. Optional save.** With `outfile` set, the image is written to that path. Accept:
   `tests/test_viz.py` checks the file exists.
+  Proof: `test_show_saves_multiple_samples_and_overlay`, `test_show_accepts_items_from_load_data`.
 - [ ] **V5. Extensible for overlays** (e.g. model predictions on top of data). Accept: an overlay
   argument/hook exists and is used for at least one report figure.
 
@@ -96,11 +112,13 @@ in `dopfn.model`.
 - [x] **M6. Loss function.** NLL of the interventional outcomes under the predicted distribution.
   Accept: `tests/test_model.py` checks a finite scalar, lower for a correct than a wrong target.
   Proof: `test_nll_loss_prefers_the_right_target`.
-- [ ] **M7. Pre-training loop on prior data** (e.g. based on the Do-PFN-prior training loop, which
+- [x] **M7. Pre-training loop on prior data** (e.g. based on the Do-PFN-prior training loop, which
   is adapted from TFM-Playground).
   Accept: `python scripts/train.py --config configs/train/<cfg>.yaml` runs on the cluster, saves
   checkpoints and loss logs.
-- [ ] **M8. Trained until the loss converges.** Accept: same as G1, final checkpoint stored.
+  Proof: `cluster/hydra.sh train` on `gpu-teaching-2h` (job 5224241, 2026-11-15); checkpoints and `metrics.csv` written.
+- [x] **M8. Trained until the loss converges.** Accept: same as G1, final checkpoint stored.
+  Proof: see G1; final model in `docs/milestones/ms1/results/checkpoint_best.pt`.
 
 ### Scikit-learn-like wrapper (owner: B)
 
@@ -114,25 +132,33 @@ Like `DoPFNRegressor` in the Do-PFN repo. `class Regressor` in `dopfn.model`.
 - [x] **R4. `predict_cate(self, X)`** = prediction with t=1 minus prediction with t=0 (column 0
   overwritten). Accept: test checks it equals `predict(X with t=1) − predict(X with t=0)`.
   Proof: `test_predict_shapes_and_cate`.
-- [ ] **R5. Works with the evaluation harness** (any object with `fit`/`predict`/`predict_cate`).
+- [x] **R5. Works with the evaluation harness** (any object with `fit`/`predict`/`predict_cate`).
   Accept: `scripts/evaluate.py` evaluates `Regressor` and the baselines with the same code.
+  Proof: `docs/milestones/ms1/results/metrics.json` has `dopfn` (the `Regressor`) next to both baselines, scored by the same `evaluate` call.
 
 ### Baselines and evaluation (owner: C)
 
 Needed for G2 and the report.
 
-- [ ] **B1. Regression baseline:** regression fitted on observational data, queried at t=0 and t=1.
-- [ ] **B2. Difference of group means** (CATE = mean(y | t=1) − mean(y | t=0)).
-- [ ] **E1. Metrics:** normalized MSE (by range of y) for outcomes and CATE.
-- [ ] **E2. Evaluation harness** for any object with `fit`/`predict`/`predict_cate`, per case study
+- [x] **B1. Regression baseline:** regression fitted on observational data, queried at t=0 and t=1.
+  Proof: `ObservationalRegression` in `dopfn.baselines`; `test_linear_regression_recovers_heterogeneous_effect_without_mutating_x`.
+- [x] **B2. Difference of group means** (CATE = mean(y | t=1) − mean(y | t=0)).
+  Proof: `GroupMeanDifference` in `dopfn.baselines`; `test_group_means_use_observational_data_and_ignore_covariates`.
+- [x] **E1. Metrics:** normalized MSE (by range of y) for outcomes and CATE.
+  Proof: `normalized_mse` in `dopfn.evaluation.metrics`; `test_cate_nmse_uses_outcome_range_even_for_constant_cate`.
+- [x] **E2. Evaluation harness** for any object with `fit`/`predict`/`predict_cate`, per case study
   and on held-out prior data. Accept: `tests/test_evaluation.py` runs it on a dummy model.
-- [ ] **E3. Overfitting check:** validation loss on held-out prior datasets; train/test separation
+  Proof: `test_evaluate_uses_observational_context_and_query_truth`; `scripts/evaluate.py` on the prior and six case studies.
+- [x] **E3. Overfitting check:** validation loss on held-out prior datasets; train/test separation
   (see `docs/decisions.md` D6).
+  Proof: validation NLL on a separate seed stream in `docs/milestones/ms1/results/train_metrics.csv` (final train 1.06, validation 1.07); `test_derive_seed_streams_do_not_overlap`; evaluation uses seed 1000.
 
 ### General code requirements
 
-- [ ] **C1. No Jupyter notebooks** in the repo. Accept: `git ls-files '*.ipynb'` is empty.
-- [ ] **C2. Runs on the TU cluster.** Accept: training and evaluation run there, noted in `status.md`.
+- [x] **C1. No Jupyter notebooks** in the repo. Accept: `git ls-files '*.ipynb'` is empty.
+  Proof: `test_no_notebooks_in_repo`; `git ls-files '*.ipynb'` is empty.
+- [x] **C2. Runs on the TU cluster.** Accept: training and evaluation run there, noted in `status.md`.
+  Proof: `status.md`, 2026-11-15 (tests, data, training and evaluation on Hydra).
 
 ## Report (report-only, 9 pts, max 10 pages, LaTeX template from ISIS, no code in the report)
 

@@ -72,6 +72,18 @@ def test_show_saves_multiple_samples_and_overlay(tmp_path: Path) -> None:
         plt.close(figure)
 
 
+def test_show_accepts_items_from_load_data(tmp_path: Path) -> None:  # req V2, V4
+    from dopfn.data import load_data
+
+    samples = list(load_data("prior", n_datasets=2, seed=3, n_train=40, n_test=20))
+    outfile = tmp_path / "prior.png"
+    figure = show(samples, outfile)
+    try:
+        assert outfile.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
+    finally:
+        plt.close(figure)
+
+
 def test_show_rejects_misaligned_overlay() -> None:
     sample = synthetic_sample()
     with pytest.raises(ValueError, match="align"):
