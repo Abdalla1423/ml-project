@@ -7,7 +7,7 @@
 #   bash cluster/hydra.sh smoke          # 10-minute training test on a GPU
 #   bash cluster/hydra.sh train [--long] [--name NAME] [--cpus N] [config]  # training (gpu-2h,
 #                                        # --long: gpu-5h); again = continue; --name = separate run
-#                                        # in outputs/train/NAME; --cpus = CPU cores (default 8)
+#                                        # in outputs/train/NAME; --cpus = CPU cores (default 4)
 #   bash cluster/hydra.sh status         # your jobs and the end of the newest log
 #
 # Every step submits a SLURM job and returns immediately; `status` shows how it is going.
@@ -124,12 +124,13 @@ train)
     # limit, and the next 'train' continues from the checkpoint.
     # --name NAME: a separate run with its own output folder outputs/train/NAME (default: default),
     # so it can run next to another one.
-    # --cpus N: CPU cores to request (default 8). Fewer cores fit on more nodes.
+    # --cpus N: CPU cores to request. Hydra allows 4 cores per GPU (CpusPerTres=gpu:4); a job that
+    # asks for more stays pending forever with reason PartitionConfig.
     partition=gpu-2h
     minutes=105
     config=configs/train/default.yaml
     name=default
-    cpus=8
+    cpus=4
     while [[ $# -gt 0 ]]; do
         case "$1" in
         --long) partition=gpu-5h minutes=285 ;;
@@ -152,7 +153,7 @@ train)
     job_name=train
     [[ "$name" == default ]] || job_name=train-$name
     out_dir=outputs/train/$name
-    workers=$((cpus > 2 ? cpus - 2 : 1))  # data-generation processes; the rest is for the main process
+    workers=$((cpus > 1 ? cpus - 1 : 1))  # data-generation processes; one core for the main process
     # Only one job per run name: two jobs on the same folder would overwrite each other's checkpoints.
     existing=$(squeue -h -u "$USER" -n "dopfn-$job_name" -o "%i (%T)" | paste -sd ' ' -)
     if [[ -n "$existing" ]]; then
