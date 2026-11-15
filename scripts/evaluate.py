@@ -93,22 +93,22 @@ def main() -> None:
         except NotImplementedError:
             parser.exit(1, "load_data is still a stub. Use --synthetic for a local test.\n")
 
-    # 按数据集分别评估，同一数据集下的所有模型都使用同一批 samples。
+    # Evaluate per dataset; all models see the same samples of a dataset.
     results = {}
     for dataset_name, samples in datasets.items():
         results[dataset_name] = {}
         for name, estimator in estimators.items():
             scores = evaluate(estimator, samples)
-            # 常量 outcome 的 NMSE 可能为 NaN，转成 None 后会保存为 JSON 的 null。
+            # The NMSE of a constant outcome can be NaN; None is saved as JSON null.
             results[dataset_name][name] = {
                 key: value if math.isfinite(value) else None
                 for key, value in scores.items()
             }
 
-    # 统一比较三项指标：CID MSE、CATE MSE 和 ATE 相对误差。
+    # One figure for the three metrics: CID MSE, CATE MSE and relative ATE error.
     if args.plot:
         args.plot.parent.mkdir(parents=True, exist_ok=True)
-        # 有 case study 时每类一列；只评估 prior 时展示 prior。
+        # One column per case study; if only the prior was evaluated, show the prior.
         comparison = {name: scores for name, scores in results.items() if name != "prior"} or results
         figure = show_metrics(comparison, args.plot,
                               title="CID, CATE and ATE comparison")

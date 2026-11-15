@@ -33,7 +33,7 @@ def ate_relative_error(cate_true: np.ndarray, cate_pred: np.ndarray) -> float:
     cate_pred = _vector(cate_pred, "cate_pred")
     if cate_true.shape != cate_pred.shape:
         raise ValueError("cate_true and cate_pred must contain the same number of values.")
-    # 先分别平均 CATE 得到 ATE，再计算相对误差，不是逐人的相对误差平均。
+    # Average the CATEs to ATEs first, then take the relative error (not a mean of per-unit relative errors).
     truth = float(cate_true.mean())
     prediction = float(cate_pred.mean())
     return abs(prediction - truth) / abs(truth) if truth else float("nan")

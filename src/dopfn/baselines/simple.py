@@ -62,7 +62,7 @@ class ObservationalRegression(BaseEstimator):
         """
         check_is_fitted(self, "estimator_")
         X_0 = _features(X, self.n_features_in_).copy()
-        X_1 = X_0.copy() # 复制一份数据 因为接下来需要分别修改 Treatment，而且不希望修改原始的 X。
+        X_1 = X_0.copy()  # separate copies: the treatment is overwritten in each, the caller's X stays unchanged
         X_0[:, 0] = 0
         X_1[:, 0] = 1
         return self.estimator_.predict(self._design(X_1)) - self.estimator_.predict(self._design(X_0))

@@ -66,13 +66,28 @@ On the TU cluster, datasets live in `/home/space/datasets/<dataset>` (make them 
 
 ```bash
 python scripts/train.py --config configs/train/debug.yaml     # ~1 min on a laptop, sanity check
-python scripts/train.py --config configs/train/default.yaml   # ~3 h on one A100
+python scripts/train.py --config configs/train/default.yaml   # ~1.5 h on one cluster GPU
 ```
 
 Outputs go to `train.out_dir` of the config: `metrics.csv` (training and validation NLL, outcome
 and CATE MSE of the model and of the difference of group means), `loss_curve.png`,
 `checkpoint_latest.pt` and `checkpoint_best.pt`. Load a trained model with
 `dopfn.model.Regressor.from_checkpoint(path)`.
+
+## Evaluation
+
+```bash
+python scripts/evaluate.py --checkpoint outputs/train/default/checkpoint_best.pt --plot
+```
+
+Scores the trained model and the two simple baselines (regression on the observational data,
+difference of group means) on held-out prior datasets and on the Do-PFN case studies. It writes
+`metrics.json` and `case_study_metrics.png` to `outputs/eval/` and prints a summary table.
+
+The ms1 results from the cluster, including the trained model, are in
+[docs/milestones/ms1/results/](docs/milestones/ms1/results/). The figures and tables of the report
+are in [docs/milestones/ms1/report/](docs/milestones/ms1/report/) and are created with
+`python scripts/make_report_material.py`.
 
 ### On the Hydra cluster
 
@@ -86,6 +101,7 @@ bash cluster/hydra.sh test      # pytest on a CPU node
 bash cluster/hydra.sh data      # case studies -> /home/space/datasets/dopfn_case_studies
 bash cluster/hydra.sh smoke     # 10-minute GPU training test
 bash cluster/hydra.sh train     # 2 h job (--long: 5 h); run again to continue from the checkpoint
+bash cluster/hydra.sh evaluate  # trained model vs. baselines
 bash cluster/hydra.sh status    # jobs and newest log
 ```
 

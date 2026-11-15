@@ -49,7 +49,7 @@ def test_case_graphs_keep_edges_and_use_input_visibility(tmp_path: Path) -> None
         ax = figure.axes[0]
         assert len(ax.patches) == graph.number_of_edges()
         colors = dict(zip(graph.nodes, ax.collections[0].get_facecolors()))
-        # 可见性取决于实际输入：U 已观测，M 没有进入输入。
+        # Visibility follows the actual inputs: U is observed, M is not part of the input.
         np.testing.assert_allclose(colors["U"], to_rgba("#BF1818"))
         np.testing.assert_allclose(colors["M"], to_rgba("#D6D6D6"))
         assert len(ax.collections) == 1

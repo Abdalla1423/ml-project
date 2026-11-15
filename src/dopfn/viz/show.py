@@ -28,7 +28,7 @@ def show_case_graphs(
     *,
     columns: int = 6,
 ) -> Figure:
-    """把多个 case study 的真实 DAG 合成一张图，按输入列区分可见和隐藏变量。"""
+    """Draw the true DAGs of several case studies in one figure; observed and hidden variables differ in color."""
     titles = {
         "observed_confounder": "Observed\nConfounder",
         "observed_mediator": "Observed\nMediator",
@@ -52,7 +52,7 @@ def show_case_graphs(
         mediators = [node for node in covariates
                      if nx.has_path(graph, "t", node) and nx.has_path(graph, node, "y")]
         if len(covariates) == 2 and len(mediators) == 1:
-            # 中介在上、混杂变量在下；这里只调整位置，所有箭头直接来自保存的 DAG。
+            # Mediator on top, confounder below; only positions change, all arrows come from the stored DAG.
             positions = {"t": (-1, 0), "y": (1, 0), mediators[0]: (0, 0.9)}
             positions.update({node: (0, -0.9) for node in covariates if node not in mediators})
         colors = [palette[node] if node in ("t", "y") else
@@ -90,8 +90,8 @@ def show_case_graphs(
 
 
 def _draw_scm(graph: nx.DiGraph, ax: Any) -> None:
-    """按因果方向分层排布，保留 A 生成的所有节点和边。"""
-    # 从终点反向分层，让直接指向 Y 的节点并排，避免长边穿过 x0、x4。
+    """Lay the graph out in causal layers, keeping every node and edge of the generated SCM."""
+    # Layer backwards from the sink so that direct parents of Y sit side by side and long edges do not cross nodes.
     layers = list(reversed(list(nx.topological_generations(graph.reverse(copy=False)))))
     positions = {
         node: (depth, (0 if depth == 0 else (len(layer) - 1) / 2) - row)
@@ -101,8 +101,8 @@ def _draw_scm(graph: nx.DiGraph, ax: Any) -> None:
     colors = ["#D55E00" if node == "t" else "#009E73" if node == "y"
               else "#dcecf7" for node in graph.nodes]
     nx.draw_networkx_nodes(graph, positions, ax=ax, node_color=colors, node_size=1000)
-    # 弧线避免 U→Y 等跨层边与 U→T→Y 的连线重叠。
-    # 优先使用直线；跨列长边被中间节点挡住时才向外绕。
+    # Arcs keep edges that skip a layer (e.g. U→Y) from overlapping a chain like U→T→Y.
+    # Straight lines by default; an edge only bends outwards when a node in between blocks it.
     for source, target in graph.edges:
         source_x, source_y = positions[source]
         target_x, target_y = positions[target]
@@ -191,7 +191,7 @@ def show(
             for t, color in enumerate(("#0072B2", "#B44A00")):
                 rows = X[:, 0] == t
                 if rows.any():
-                    # 观察数据是按 T 分组；干预数据对应 do(T=t)。
+                    # Observational rows are grouped by T; interventional rows correspond to do(T=t).
                     group = f"do(T={t})" if ax is in_ax else f"T={t}"
                     ax.scatter(coords[rows], y[rows], s=19, alpha=0.65,
                                color=color, label=f"{group} (n={rows.sum()})")
@@ -217,7 +217,7 @@ def show_metrics(
     *,
     title: str | None = None,
 ) -> Figure:
-    """三行分别比较 CID 的归一化 MSE、CATE 的归一化 MSE 和 ATE 相对误差。"""
+    """Three rows compare the normalized MSE of the CID, the normalized MSE of the CATE and the relative ATE error."""
     metrics = (("outcome_nmse", "MSE (CID)", "n_nmse_datasets"),
                ("cate_nmse", "MSE (CATE)", "n_nmse_datasets"),
                ("ate_relative_error", "Rel. Err (ATE)", "n_ate_datasets"))

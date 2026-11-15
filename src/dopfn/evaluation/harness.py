@@ -60,7 +60,7 @@ def evaluate(estimator: CausalEstimator, datasets: Iterable[Any]) -> dict[str, f
         totals[metric] = total / count if count else float("nan")
     ate_errors = comparison_values["ate_relative_error"]
     totals["ate_relative_error"] = float(np.mean(ate_errors)) if ate_errors else float("nan")
-    # 以 SCM 为重采样单位计算均值的 95% bootstrap 区间，不把查询行当独立 SCM。
+    # 95% bootstrap interval of the mean, resampling whole SCMs (query rows are not independent SCMs).
     rng = np.random.default_rng(0)
     for metric, values in comparison_values.items():
         low = high = float("nan")

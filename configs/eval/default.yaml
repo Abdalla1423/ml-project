@@ -1,7 +1,7 @@
 # Evaluation config (owner: GUO QIAN).
-seed: 1000 # 随机种子的编号，用来让随机结果可以重复。 希望三个模型都使用同一批测试数据。
-# 控制 prior 和测试 SCM 的随机采样；读取已有 case study 文件不使用 seed。
-n_prior_datasets: 256 # 默认会取 256 组 SCM 数据来评估。
+seed: 1000  # makes the results repeatable; all models are scored on the same test datasets
+# Controls the sampling of prior test SCMs; reading the stored case-study files does not use it.
+n_prior_datasets: 256  # held-out prior datasets (one SCM each) used for the evaluation
 case_studies:
   - observed_confounder
   - observed_mediator

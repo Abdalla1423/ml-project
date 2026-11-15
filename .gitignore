@@ -38,3 +38,6 @@ CLAUDE.local.md
 .idea/
 .vscode/
 
+
+# Local cluster login written by an old helper script
+.cluster-user
