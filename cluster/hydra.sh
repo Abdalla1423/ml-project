@@ -8,6 +8,7 @@
 #   bash cluster/hydra.sh train [--long] [--name NAME] [--cpus N] [config]  # training (2 h job,
 #                                        # --long: 5 h); again = continue; --name = separate run
 #                                        # in outputs/train/NAME; --cpus = CPU cores (default 8)
+#   bash cluster/hydra.sh evaluate [--name NAME]  # trained model vs. baselines -> outputs/eval/NAME
 #   bash cluster/hydra.sh status         # your jobs and the end of the newest log
 #
 # Every step submits a SLURM job and returns immediately; `status` shows how it is going.
@@ -34,7 +35,7 @@ for tool in sbatch squeue; do
 done
 
 usage() {
-    sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'
     exit 1
 }
 
@@ -169,6 +170,35 @@ nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 apptainer exec --nv "$SIF" python scripts/train.py --config "$config" \\
     --device cuda --resume --max-minutes $minutes --out-dir "$out_dir" --num-workers $workers
 echo "Results in $out_dir"
+EOF
+    ;;
+
+evaluate)
+    need_container
+    # Scores the trained model of run NAME and the baselines on held-out prior data and the case
+    # studies (needs the 'data' step).
+    name=default
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+        --name)
+            name=${2:-}
+            [[ "$name" =~ ^[A-Za-z0-9_-]+$ ]] || { echo "--name needs a name of letters, digits, - or _" >&2; exit 1; }
+            shift
+            ;;
+        *) echo "Unknown option: $1" >&2; exit 1 ;;
+        esac
+        shift
+    done
+    checkpoint=outputs/train/$name/checkpoint_best.pt
+    [[ -f "$checkpoint" ]] || { echo "No trained model at $checkpoint. Run 'train' first (same --name)." >&2; exit 1; }
+    [[ -d "$DOPFN_CASE_STUDY_ROOT" ]] || { echo "No case studies in $DOPFN_CASE_STUDY_ROOT. Run 'bash cluster/hydra.sh data' first." >&2; exit 1; }
+    job_name=evaluate
+    [[ "$name" == default ]] || job_name=evaluate-$name
+    submit "$job_name" --partition=$GPU-2h --gpus-per-node=1 --ntasks-per-node=4 <<EOF
+$header
+apptainer exec --nv "$SIF" python scripts/evaluate.py --config configs/eval/default.yaml \\
+    --checkpoint "$checkpoint" --out-dir "outputs/eval/$name" --plot
+echo "Evaluation done: outputs/eval/$name"
 EOF
     ;;
 

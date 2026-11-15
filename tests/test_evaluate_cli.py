@@ -13,7 +13,7 @@ import dopfn.model
 import dopfn.training.loop
 import dopfn.viz
 from dopfn.baselines import ObservationalRegression
-from dopfn.evaluation._synthetic import synthetic_graph, synthetic_sample
+from dopfn.evaluation._synthetic import synthetic_sample
 
 
 def test_cli_scores_baselines_and_checkpoint_by_dataset(
@@ -24,12 +24,10 @@ def test_cli_scores_baselines_and_checkpoint_by_dataset(
     sample = synthetic_sample()
     case_sample = synthetic_sample(seed=321)
 
-    def load_data(dataset: str, *, seed: int | None = None, with_graph: bool = False):
-        cases.append((dataset, seed, with_graph))
+    def load_data(dataset: str, *, seed: int | None = None, n_datasets: int | None = None):
+        cases.append((dataset, seed, n_datasets))
         data = sample if dataset == "prior" else case_sample
-        if with_graph:
-            return iter([(data, synthetic_graph()), (data, synthetic_graph())])
-        return iter([data, data])
+        return iter([data, data][:n_datasets])
 
     seen_results = []
     original_show_metrics = dopfn.viz.show_metrics
@@ -49,7 +47,7 @@ def test_cli_scores_baselines_and_checkpoint_by_dataset(
         loaded_paths.append(path)
         return CheckpointModel()
 
-    def regressor(model: CheckpointModel) -> ObservationalRegression:
+    def regressor(model: CheckpointModel, device: object = "cpu") -> ObservationalRegression:
         assert isinstance(model, CheckpointModel)
         return ObservationalRegression()
 
@@ -77,7 +75,7 @@ def test_cli_scores_baselines_and_checkpoint_by_dataset(
     assert set(scores["prior"]) == {
         "observational_regression", "group_mean_difference", "dopfn"
     }
-    assert cases == [("prior", 123, True), ("observed_confounder", None, False)]
+    assert cases == [("prior", 123, 1), ("observed_confounder", None, None)]
     assert loaded_paths == [checkpoint]
     assert len(seen_results) == 1
     assert list(seen_results[0]) == ["observed_confounder"]

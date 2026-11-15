@@ -1,9 +1,13 @@
-"""Evaluate baselines and a Do-PFN checkpoint on prior data and case studies."""
+"""Evaluate baselines and a Do-PFN checkpoint on prior data and case studies.
+
+Usage:
+    python scripts/evaluate.py --checkpoint outputs/train/default/checkpoint_best.pt --plot
+    python scripts/evaluate.py --synthetic        # baselines only, on a test-only SCM
+"""
 
 import argparse
 import json
 import math
-from itertools import islice
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -13,6 +17,8 @@ from dopfn.baselines import GroupMeanDifference, ObservationalRegression
 from dopfn.evaluation import CausalEstimator, evaluate
 from dopfn.viz import show_metrics
 
+PLOT_NAME = "case_study_metrics.png"
+
 
 def main() -> None:
     """Run the requested datasets and save a score table as JSON."""
@@ -20,16 +26,18 @@ def main() -> None:
     parser.add_argument("--config", default="configs/eval/default.yaml")
     parser.add_argument("--checkpoint", type=Path, help="Checkpoint saved by dopfn.training.")
     parser.add_argument("--synthetic", action="store_true", help="Use the test-only SCM.")
-    # 只写 --plot 时保存到项目的上一级目录，本机对应桌面的 PML 文件夹。
-    # 现在统一放在该目录下的 case_studies/case_study_metrics.png。
-    parser.add_argument("--plot", type=Path, nargs="?",
-                        const=Path(__file__).resolve().parents[2] / "case_studies" / "case_study_metrics.png",
-                        help="Save the three-metric comparison to this path.")
+    parser.add_argument("--plot", type=Path, nargs="?", const=Path(PLOT_NAME),
+                        help=f"Save the three-metric comparison (default: <out-dir>/{PLOT_NAME}).")
+    parser.add_argument("--out-dir", type=Path, help="Override the config's output directory.")
+    parser.add_argument("--device", default="auto", help="Device for the checkpoint: auto, cuda or cpu.")
     args = parser.parse_args()
     if args.synthetic and args.checkpoint:
         parser.error("--synthetic uses the test-only SCM and baseline estimators.")
 
     config = yaml.safe_load(Path(args.config).read_text())
+    out_dir = Path(args.out_dir or config["out_dir"])
+    if args.plot == Path(PLOT_NAME):
+        args.plot = out_dir / PLOT_NAME
     baseline_types = {
         "observational_regression": ObservationalRegression,
         "group_mean_difference": GroupMeanDifference,
@@ -39,12 +47,13 @@ def main() -> None:
     }
     if args.checkpoint:
         from dopfn.model import Regressor
-        from dopfn.training.loop import load_checkpoint
+        from dopfn.training.loop import load_checkpoint, resolve_device
 
         try:
+            device = resolve_device(args.device)
             model = load_checkpoint(args.checkpoint)
             model.eval()
-            estimators["dopfn"] = Regressor(model)
+            estimators["dopfn"] = Regressor(model, device=device)
         except NotImplementedError:
             parser.exit(1, "Checkpoint loading or Regressor is still a stub.\n")
     if not estimators:
@@ -66,11 +75,8 @@ def main() -> None:
             parser.error("case_studies must be 'all' or a list of supported case-study names.")
         try:
             # TODO(team): D6 - coordinate this seed with the training and validation split.
-            # 同时取得 A 生成的数据和对应的 SCM 图；评估时使用其中的数据。
-            prior_samples = list(
-                islice(load_data("prior", seed=seed, with_graph=True), n_prior)
-            )
-            datasets = {"prior": [sample for sample, _ in prior_samples]}
+            # Held-out prior datasets: a seed stream that training and validation do not use.
+            datasets = {"prior": list(load_data("prior", seed=seed, n_datasets=n_prior))}
             for case in cases:
                 datasets[case] = list(load_data(case))
         except NotImplementedError:
@@ -97,7 +103,6 @@ def main() -> None:
                               title="CID, CATE and ATE comparison")
         plt.close(figure)
 
-    out_dir = Path(config["out_dir"])
     out_dir.mkdir(parents=True, exist_ok=True)
     outfile = out_dir / ("synthetic_test_only.json" if args.synthetic else "metrics.json")
     report = json.dumps(results, indent=2, allow_nan=False)

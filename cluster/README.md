@@ -37,6 +37,7 @@ until the job is finished before starting the next step.
 | 3. Case studies to `/home/space/datasets` | `bash cluster/hydra.sh data` | `Case studies ready` | ~5 min |
 | 4. Short GPU training test | `bash cluster/hydra.sh smoke` | `Smoke test passed` | ~10 min |
 | 5. Full training | `bash cluster/hydra.sh train` | `step 30000` or `Stopping after ...` | up to 2 h |
+| 6. Evaluation (after training) | `bash cluster/hydra.sh evaluate` | `Evaluation done` | ~10 min |
 
 - Training runs as a 2 h job in `gpu-teaching-2h` (short jobs start sooner) and stops on its own shortly before the
   limit. If `status` shows `Stopping after ...`, run `bash cluster/hydra.sh train` again: it
@@ -44,6 +45,9 @@ until the job is finished before starting the next step.
 - **A second run next to the first:** `bash cluster/hydra.sh train --name run2` starts a separate
   run with its own folder `outputs/train/run2`, so it never touches the first run's checkpoints. To
   continue it later, use the same `--name`. Without `--name` the run is `outputs/train/default`.
+- **Evaluation** compares the trained model with the baselines on held-out prior data and on the
+  case studies. For a named run: `bash cluster/hydra.sh evaluate --name run2`. Results:
+  `outputs/eval/<name>/metrics.json` (all scores) and `case_study_metrics.png` (report figure).
 - You can log out (`exit`) while a job runs; it keeps running. Log in again to check `status`.
 - **Email when a job is done:** run this once on the cluster, with your email address:
 
