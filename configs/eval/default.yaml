@@ -1,6 +1,13 @@
-# Evaluation config (owner: C).
-seed: 1000
-n_prior_datasets: 256
-case_studies: all
+# Evaluation config (owner: GUO QIAN).
+seed: 1000  # makes the results repeatable; all models are scored on the same test datasets
+# Controls the sampling of prior test SCMs; reading the stored case-study files does not use it.
+n_prior_datasets: 256  # held-out prior datasets (one SCM each) used for the evaluation
+case_studies:
+  - observed_confounder
+  - observed_mediator
+  - confounder_mediator
+  - unobserved_confounder
+  - frontdoor_criterion
+  - backdoor_criterion
 baselines: [observational_regression, group_mean_difference]
 out_dir: outputs/eval

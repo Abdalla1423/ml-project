@@ -37,3 +37,7 @@ CLAUDE.local.md
 .DS_Store
 .idea/
 .vscode/
+
+
+# Local cluster login written by an old helper script
+.cluster-user

@@ -1,6 +1,7 @@
 """Tests for dopfn.common (shared) and repo-wide rules."""
 
 import random
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -30,6 +31,7 @@ def test_load_yaml(tmp_path: Path) -> None:
         load_yaml(tmp_path / "list.yaml")
 
 
+@pytest.mark.skipif(shutil.which("git") is None, reason="git not installed")
 def test_no_notebooks_in_repo() -> None:  # req C1
     out = subprocess.run(
         ["git", "ls-files", "*.ipynb"], cwd=REPO_ROOT, capture_output=True, text=True, check=True

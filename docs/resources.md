@@ -26,5 +26,6 @@ D7). Do not assume how a repo is structured. Inspect it before relying on any AP
 - Code: GitHub repo shared with `marvinsxtr`, submitted commit tagged `msN`, runnable on the cluster.
 
 ## Infrastructure
+- Hydra cluster documentation (copy): `docs/hydra-cluster.md`. Our step-by-step guide: `cluster/README.md`.
 - Supervisor GitHub handle: `marvinsxtr` (needs access to the repo).
 - Cluster datasets: `/home/space/datasets/<dataset>`, made readable with `chmod -R a+r`.

@@ -1,17 +1,126 @@
-"""Evaluate the prototype and baselines on prior data and case studies (owner: C).
+"""Evaluate baselines and a Do-PFN checkpoint on prior data and case studies.
 
-Usage: python scripts/evaluate.py --config configs/eval/default.yaml --checkpoint <path>
+Usage:
+    python scripts/evaluate.py --checkpoint outputs/train/default/checkpoint_best.pt --plot
+    python scripts/evaluate.py --synthetic        # baselines only, on a test-only SCM
 """
 
 import argparse
+import json
+import math
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import yaml
+
+from dopfn.baselines import GroupMeanDifference, ObservationalRegression
+from dopfn.evaluation import CausalEstimator, evaluate
+from dopfn.viz import show_metrics
+
+PLOT_NAME = "case_study_metrics.png"
+
+
+def print_summary(results: dict[str, dict[str, dict[str, float | None]]]) -> None:
+    """Print normalized MSE (mean and median over datasets) per dataset and model; lower is better."""
+    columns = ("outcome_nmse", "outcome_nmse_median", "cate_nmse", "cate_nmse_median")
+    print(f"\n{'dataset':<24}{'model':<28}" + "".join(f"{c:>22}" for c in columns))
+    for dataset_name, models in results.items():
+        for name, scores in models.items():
+            cells = (scores.get(c) for c in columns)
+            print(f"{dataset_name:<24}{name:<28}"
+                  + "".join(f"{'nan' if v is None else format(v, '.4f'):>22}" for v in cells))
 
 
 def main() -> None:
+    """Run the requested datasets and save a score table as JSON."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default="configs/eval/default.yaml")
-    parser.add_argument("--checkpoint", default=None, help="Trained model checkpoint.")
+    parser.add_argument("--checkpoint", type=Path, help="Checkpoint saved by dopfn.training.")
+    parser.add_argument("--synthetic", action="store_true", help="Use the test-only SCM.")
+    parser.add_argument("--plot", type=Path, nargs="?", const=Path(PLOT_NAME),
+                        help=f"Save the three-metric comparison (default: <out-dir>/{PLOT_NAME}).")
+    parser.add_argument("--out-dir", type=Path, help="Override the config's output directory.")
+    parser.add_argument("--device", default="auto", help="Device for the checkpoint: auto, cuda or cpu.")
     args = parser.parse_args()
-    raise NotImplementedError(f"evaluation not implemented yet (config={args.config})")
+    if args.synthetic and args.checkpoint:
+        parser.error("--synthetic uses the test-only SCM and baseline estimators.")
+
+    config = yaml.safe_load(Path(args.config).read_text())
+    out_dir = Path(args.out_dir or config["out_dir"])
+    if args.plot == Path(PLOT_NAME):
+        args.plot = out_dir / PLOT_NAME
+    baseline_types = {
+        "observational_regression": ObservationalRegression,
+        "group_mean_difference": GroupMeanDifference,
+    }
+    estimators: dict[str, CausalEstimator] = {
+        name: baseline_types[name]() for name in config["baselines"]
+    }
+    if args.checkpoint:
+        from dopfn.model import Regressor
+        from dopfn.training.loop import load_checkpoint, resolve_device
+
+        try:
+            device = resolve_device(args.device)
+            model = load_checkpoint(args.checkpoint)
+            model.eval()
+            estimators["dopfn"] = Regressor(model, device=device)
+        except NotImplementedError:
+            parser.exit(1, "Checkpoint loading or Regressor is still a stub.\n")
+    if not estimators:
+        parser.error("Configure at least one baseline or provide --checkpoint.")
+
+    seed = int(config["seed"])
+    if args.synthetic:
+        from dopfn.evaluation._synthetic import synthetic_sample
+
+        datasets = {"synthetic_test_only": [synthetic_sample(seed)]}
+    else:
+        from dopfn.data import CASE_STUDIES, load_data
+
+        n_prior = int(config["n_prior_datasets"])
+        cases = config["case_studies"]
+        if cases == "all":
+            cases = CASE_STUDIES
+        if not isinstance(cases, (list, tuple)) or any(case not in CASE_STUDIES for case in cases):
+            parser.error("case_studies must be 'all' or a list of supported case-study names.")
+        try:
+            # TODO(team): D6 - coordinate this seed with the training and validation split.
+            # Held-out prior datasets: a seed stream that training and validation do not use.
+            datasets = {"prior": list(load_data("prior", seed=seed, n_datasets=n_prior))}
+            for case in cases:
+                datasets[case] = list(load_data(case))
+        except NotImplementedError:
+            parser.exit(1, "load_data is still a stub. Use --synthetic for a local test.\n")
+
+    # Evaluate per dataset; all models see the same samples of a dataset.
+    results = {}
+    for dataset_name, samples in datasets.items():
+        results[dataset_name] = {}
+        for name, estimator in estimators.items():
+            scores = evaluate(estimator, samples)
+            # The NMSE of a constant outcome can be NaN; None is saved as JSON null.
+            results[dataset_name][name] = {
+                key: value if math.isfinite(value) else None
+                for key, value in scores.items()
+            }
+
+    # One figure for the three metrics: CID MSE, CATE MSE and relative ATE error.
+    if args.plot:
+        args.plot.parent.mkdir(parents=True, exist_ok=True)
+        # One column per case study; if only the prior was evaluated, show the prior.
+        comparison = {name: scores for name, scores in results.items() if name != "prior"} or results
+        figure = show_metrics(comparison, args.plot,
+                              title="CID, CATE and ATE comparison")
+        plt.close(figure)
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    outfile = out_dir / ("synthetic_test_only.json" if args.synthetic else "metrics.json")
+    report = json.dumps(results, indent=2, allow_nan=False)
+    outfile.write_text(report + "\n")
+    print(report)
+    print(f"Saved {outfile}")
+    print_summary(results)
 
 
 if __name__ == "__main__":

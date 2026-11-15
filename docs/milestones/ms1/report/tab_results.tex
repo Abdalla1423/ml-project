@@ -1,0 +1,35 @@
+\begin{tabular}{llrrrr}
+\toprule
+ & & \multicolumn{2}{c}{Outcome NMSE} & \multicolumn{2}{c}{CATE NMSE} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}
+Dataset & Model & mean & median & mean & median \\
+\midrule
+Prior (held out) ($n=256$) & Our model & \textbf{0.0182} & \textbf{0.0178} & \textbf{0.0047} & \textbf{0.0006} \\
+ & Regression & 0.0272 & 0.0221 & 0.0209 & 0.0034 \\
+ & Group means & 0.0274 & 0.0230 & 0.0082 & 0.0010 \\
+\midrule
+Observed Confounder ($n=100$) & Our model & \textbf{0.0488} & \textbf{0.0218} & \textbf{0.0506} & \textbf{0.0236} \\
+ & Regression & 0.0889 & 0.0392 & 0.0811 & 0.0260 \\
+ & Group means & 0.1225 & 0.0753 & 0.0975 & 0.0558 \\
+\midrule
+Observed Mediator ($n=100$) & Our model & 90.4 & 0.0191 & 90.5 & 0.0007 \\
+ & Regression & 12.6 & 0.0458 & 12.6 & 0.0212 \\
+ & Group means & \textbf{0.0148} & \textbf{0.0100} & \textbf{0.0010} & \textbf{0.0002} \\
+\midrule
+Confounder + Mediator ($n=100$) & Our model & \textbf{0.0576} & \textbf{0.0334} & \textbf{0.0578} & \textbf{0.0344} \\
+ & Regression & 0.1307 & 0.0474 & 0.1247 & 0.0350 \\
+ & Group means & 0.1193 & 0.0810 & 0.0964 & 0.0592 \\
+\midrule
+Unobserved Confounder ($n=100$) & Our model & \textbf{0.0687} & \textbf{0.0503} & 0.0476 & 0.0268 \\
+ & Regression & 0.1327 & 0.0659 & 0.1113 & 0.0377 \\
+ & Group means & 0.0857 & 0.0555 & \textbf{0.0441} & \textbf{0.0151} \\
+\midrule
+Front-Door ($n=100$) & Our model & \textbf{0.0508} & \textbf{0.0241} & \textbf{0.0545} & 0.0219 \\
+ & Regression & 0.0848 & 0.0317 & 0.0773 & \textbf{0.0176} \\
+ & Group means & 0.1213 & 0.0851 & 0.0930 & 0.0495 \\
+\midrule
+Back-Door ($n=100$) & Our model & \textbf{0.0713} & \textbf{0.0371} & \textbf{0.0770} & \textbf{0.0290} \\
+ & Regression & 0.1564 & 0.0555 & 0.1562 & 0.0454 \\
+ & Group means & 0.1381 & 0.0918 & 0.1112 & 0.0518 \\
+\bottomrule
+\end{tabular}

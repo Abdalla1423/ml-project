@@ -1,0 +1,15 @@
+\begin{tabular}{ll}
+\toprule
+Architecture & attention between features, then between rows (nanoTabPFN) \\
+Layers / embedding size / heads / MLP size & 4 / 128 / 4 / 256 \\
+Output & bar distribution with 1000 bins (quantile borders) \\
+Parameters & 1.09\,M \\
+Loss & negative log-likelihood of the interventional outcome \\
+Optimizer & AdamW, learning rate 0.0003, weight decay 0 \\
+Schedule & 1000 warm-up steps, then cosine decay; gradient clipping 1 \\
+Steps $\times$ batch size & 30000 $\times$ 16 datasets (480k datasets) \\
+Context rows / query rows & 50--1000 / 200 \\
+Validation & 256 held-out prior datasets every 500 steps \\
+Training time & 92 min on one GPU \\
+\bottomrule
+\end{tabular}

@@ -120,7 +120,8 @@ def test_prior_independent_of_python_hash_seed() -> None:  # req D6
     )
     digests = set()
     for hash_seed in ("1", "2"):
-        env = {**os.environ, "PYTHONHASHSEED": hash_seed}
+        # Pass on pytest's import path (src/, Do-PFN-prior/) in case the package is not installed.
+        env = {**os.environ, "PYTHONHASHSEED": hash_seed, "PYTHONPATH": os.pathsep.join(sys.path)}
         out = subprocess.run(
             [sys.executable, "-c", code], env=env, capture_output=True, text=True, check=True
         )
