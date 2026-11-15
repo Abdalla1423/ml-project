@@ -72,7 +72,13 @@ The training results are then in `outputs/train/default/`: `loss_curve.png` (rep
 - **`setup` fails:** the script already retries with `--fakeroot`; otherwise ask the cluster admins.
 - **`data` says permission denied:** you need write access to `/home/space/datasets`; ask the
   cluster admins.
-- **A job stays `PENDING`:** the cluster is busy, just wait.
+- **A job stays `PENDING`:** look at the reason in the last column of `status`.
+  - `Priority` or `Resources`: the cluster is busy, just wait.
+  - `PartitionConfig`: the job asks for something this partition does not offer, so it never
+    starts. Cancel it (`scancel <job-id>`) and submit again with fewer CPU cores, e.g.
+    `bash cluster/hydra.sh train --cpus 4`. To see whether a request can run at all, without
+    submitting anything:
+    `sbatch --test-only -p gpu-2h --gpus-per-node=1 --ntasks-per-node=4 --wrap=true`
 - **Cancel a job:** `scancel <job-id>` (the id is shown by `status`).
 
 ## Getting an account (new team members)

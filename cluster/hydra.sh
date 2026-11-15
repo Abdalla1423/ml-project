@@ -5,8 +5,9 @@
 #   bash cluster/hydra.sh test           # run pytest on a CPU node (max 15 min)
 #   bash cluster/hydra.sh data           # case studies -> /home/space/datasets/dopfn_case_studies
 #   bash cluster/hydra.sh smoke          # 10-minute training test on a GPU
-#   bash cluster/hydra.sh train [--long] [--name NAME] [config]  # training (gpu-2h, --long: gpu-5h);
-#                                        # again = continue; --name = separate run in outputs/train/NAME
+#   bash cluster/hydra.sh train [--long] [--name NAME] [--cpus N] [config]  # training (gpu-2h,
+#                                        # --long: gpu-5h); again = continue; --name = separate run
+#                                        # in outputs/train/NAME; --cpus = CPU cores (default 8)
 #   bash cluster/hydra.sh status         # your jobs and the end of the newest log
 #
 # Every step submits a SLURM job and returns immediately; `status` shows how it is going.
@@ -30,7 +31,7 @@ for tool in sbatch squeue; do
 done
 
 usage() {
-    sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'
     exit 1
 }
 
@@ -122,16 +123,23 @@ train)
     # limit, and the next 'train' continues from the checkpoint.
     # --name NAME: a separate run with its own output folder outputs/train/NAME (default: default),
     # so it can run next to another one.
+    # --cpus N: CPU cores to request (default 8). Fewer cores fit on more nodes.
     partition=gpu-2h
     minutes=105
     config=configs/train/default.yaml
     name=default
+    cpus=8
     while [[ $# -gt 0 ]]; do
         case "$1" in
         --long) partition=gpu-5h minutes=285 ;;
         --name)
             name=${2:-}
             [[ "$name" =~ ^[A-Za-z0-9_-]+$ ]] || { echo "--name needs a name of letters, digits, - or _" >&2; exit 1; }
+            shift
+            ;;
+        --cpus)
+            cpus=${2:-}
+            [[ "$cpus" =~ ^[1-9][0-9]*$ ]] || { echo "--cpus needs a number, e.g. --cpus 4" >&2; exit 1; }
             shift
             ;;
         -*) echo "Unknown option: $1" >&2; exit 1 ;;
@@ -143,6 +151,7 @@ train)
     job_name=train
     [[ "$name" == default ]] || job_name=train-$name
     out_dir=outputs/train/$name
+    workers=$((cpus > 2 ? cpus - 2 : 1))  # data-generation processes; the rest is for the main process
     # Only one job per run name: two jobs on the same folder would overwrite each other's checkpoints.
     existing=$(squeue -h -u "$USER" -n "dopfn-$job_name" -o "%i (%T)" | paste -sd ' ' -)
     if [[ -n "$existing" ]]; then
@@ -150,11 +159,11 @@ train)
         echo "Wait for it, cancel it (scancel <JOBID>), or start a separate run: train --name <other-name>" >&2
         exit 1
     fi
-    submit "$job_name" --partition=$partition --gpus-per-node=1 --ntasks-per-node=8 <<EOF
+    submit "$job_name" --partition=$partition --gpus-per-node=1 --ntasks-per-node="$cpus" <<EOF
 $header
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 apptainer exec --nv "$SIF" python scripts/train.py --config "$config" \\
-    --device cuda --resume --max-minutes $minutes --out-dir "$out_dir"
+    --device cuda --resume --max-minutes $minutes --out-dir "$out_dir" --num-workers $workers
 echo "Results in $out_dir"
 EOF
     ;;
@@ -162,12 +171,15 @@ EOF
 status)
     squeue -u "$USER" -o "%.10i %.20j %.10T %.10M %.12P %R"
     # Jobs that have not started yet have no log file.
-    while read -r id name state; do
-        [[ "$name" == dopfn-* ]] || continue
-        if [[ "$state" == PENDING ]]; then
+    while read -r id name state reason; do
+        [[ "$name" == dopfn-* && "$state" == PENDING ]] || continue
+        if [[ "$reason" == PartitionConfig ]]; then
+            echo "-> Job $id ($name) cannot start: its request does not fit the partition (PartitionConfig)."
+            echo "   Waiting does not help. See 'A job stays PENDING' in cluster/README.md."
+        else
             echo "-> Job $id ($name) is waiting in the queue; its log appears when it starts."
         fi
-    done < <(squeue -h -u "$USER" -o "%i %j %T")
+    done < <(squeue -h -u "$USER" -o "%i %j %T %r")
     newest=$(ls -t logs/*.out 2>/dev/null | head -n 1 || true)
     if [[ -n "$newest" ]]; then
         echo
