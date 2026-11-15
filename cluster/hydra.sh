@@ -50,7 +50,8 @@ submit() {
     if [[ -n "${DOPFN_MAIL:-}" ]]; then
         mail=(--mail-type=END,FAIL --mail-user="$DOPFN_MAIL")
     fi
-    job=$(sbatch --parsable --job-name="dopfn-$name" --output="logs/$name-%j.out" ${mail[@]+"${mail[@]}"} "$@")
+    # --nodes=1: without it, SLURM on hydra spreads "N CPUs" over N nodes (one GPU on each).
+    job=$(sbatch --parsable --nodes=1 --job-name="dopfn-$name" --output="logs/$name-%j.out" ${mail[@]+"${mail[@]}"} "$@")
     echo "Submitted job $job ($name). Log: logs/$name-$job.out"
     if [[ -n "${DOPFN_MAIL:-}" ]]; then
         echo "An email goes to $DOPFN_MAIL when the job ends or fails."

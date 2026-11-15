@@ -75,10 +75,11 @@ The training results are then in `outputs/train/default/`: `loss_curve.png` (rep
 - **A job stays `PENDING`:** look at the reason in the last column of `status`.
   - `Priority` or `Resources`: the cluster is busy, just wait.
   - `PartitionConfig`: the job asks for something this partition does not offer, so it never
-    starts. Cancel it (`scancel <job-id>`) and submit again with fewer CPU cores, e.g.
-    `bash cluster/hydra.sh train --cpus 4`. To see whether a request can run at all, without
-    submitting anything:
-    `sbatch --test-only -p gpu-2h --gpus-per-node=1 --ntasks-per-node=4 --wrap=true`
+    starts. Cancel it (`scancel <job-id>`) and submit it again with the current `hydra.sh`. To see
+    what a request would get, without submitting anything:
+    `sbatch --test-only -p gpu-2h --nodes=1 --gpus-per-node=1 --ntasks-per-node=8 --wrap=true`
+    (it should name exactly one node). If that fails, try fewer CPU cores:
+    `bash cluster/hydra.sh train --cpus 4`.
 - **Cancel a job:** `scancel <job-id>` (the id is shown by `status`).
 
 ## Getting an account (new team members)
