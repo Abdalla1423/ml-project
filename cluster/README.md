@@ -38,9 +38,9 @@ until the job is finished before starting the next step.
 | 4. Short GPU training test | `bash cluster/hydra.sh smoke` | `Smoke test passed` | ~10 min |
 | 5. Full training | `bash cluster/hydra.sh train` | `step 30000` or `Stopping after ...` | up to 2 h |
 
-- Training runs as a 2 h job (short jobs start sooner) and stops on its own shortly before the
+- Training runs as a 2 h job in `gpu-teaching-2h` (short jobs start sooner) and stops on its own shortly before the
   limit. If `status` shows `Stopping after ...`, run `bash cluster/hydra.sh train` again: it
-  continues from the last checkpoint. `train --long` requests a 5 h job instead.
+  continues from the last checkpoint. `train --long` requests a 5 h job (`gpu-teaching-5h`) instead.
 - **A second run next to the first:** `bash cluster/hydra.sh train --name run2` starts a separate
   run with its own folder `outputs/train/run2`, so it never touches the first run's checkpoints. To
   continue it later, use the same `--name`. Without `--name` the run is `outputs/train/default`.
@@ -74,10 +74,11 @@ The training results are then in `outputs/train/default/`: `loss_curve.png` (rep
   cluster admins.
 - **A job stays `PENDING`:** look at the reason in the last column of `status`.
   - `Priority` or `Resources`: the cluster is busy, just wait.
-  - `PartitionConfig`: the job asks for something this partition does not allow, so it never
-    starts. On hydra a GPU job may use at most 4 CPU cores per GPU; `hydra.sh` asks for 4. Cancel
-    the job (`scancel <job-id>`) and submit it again with the current `hydra.sh`.
-    `scontrol show job <job-id>` shows the exact request (`ReqTRES`) and the limit (`CpusPerTres`).
+  - `PartitionConfig`: the job never starts, because the account may not use that partition.
+    Course accounts (`pml...`) are denied on `gpu-2h`, `gpu-5h`, ... and have their own partitions
+    `gpu-teaching-9m`, `-2h`, `-5h`, `-2d`, `-7d`; `hydra.sh` uses those. Cancel the job
+    (`scancel <job-id>`), copy the current code to the cluster (step 1) and submit it again.
+    `scontrol show partition` lists who may use which partition (`AllowAccounts`, `DenyAccounts`).
 - **Cancel a job:** `scancel <job-id>` (the id is shown by `status`).
 
 ## Getting an account (new team members)

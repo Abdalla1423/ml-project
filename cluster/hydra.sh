@@ -5,9 +5,9 @@
 #   bash cluster/hydra.sh test           # run pytest on a CPU node (max 15 min)
 #   bash cluster/hydra.sh data           # case studies -> /home/space/datasets/dopfn_case_studies
 #   bash cluster/hydra.sh smoke          # 10-minute training test on a GPU
-#   bash cluster/hydra.sh train [--long] [--name NAME] [--cpus N] [config]  # training (gpu-2h,
-#                                        # --long: gpu-5h); again = continue; --name = separate run
-#                                        # in outputs/train/NAME; --cpus = CPU cores (default 4)
+#   bash cluster/hydra.sh train [--long] [--name NAME] [--cpus N] [config]  # training (2 h job,
+#                                        # --long: 5 h); again = continue; --name = separate run
+#                                        # in outputs/train/NAME; --cpus = CPU cores (default 8)
 #   bash cluster/hydra.sh status         # your jobs and the end of the newest log
 #
 # Every step submits a SLURM job and returns immediately; `status` shows how it is going.
@@ -21,6 +21,9 @@ SIF=${DOPFN_SIF:-$HOME/containers/dopfn.sif}
 export DOPFN_CASE_STUDY_ROOT=${DOPFN_CASE_STUDY_ROOT:-/home/space/datasets/dopfn_case_studies}
 export PYTHONPATH="$PWD/src:$PWD/Do-PFN-prior"
 DO_PFN_URL=https://github.com/jr2021/Do-PFN
+# Course accounts (pml) may not use gpu-2h, gpu-5h, ...; they have their own gpu-teaching-* partitions.
+# A job in a partition that denies the account stays pending forever with reason PartitionConfig.
+GPU=${DOPFN_GPU_PARTITIONS:-gpu-teaching}
 mkdir -p logs
 
 for tool in sbatch squeue; do
@@ -120,20 +123,19 @@ EOF
 
 train)
     need_container
-    # Default: gpu-2h (starts sooner); --long: gpu-5h. The job stops cleanly 15 min before the
+    # Default: $GPU-2h (starts sooner); --long: $GPU-5h. The job stops cleanly 15 min before the
     # limit, and the next 'train' continues from the checkpoint.
     # --name NAME: a separate run with its own output folder outputs/train/NAME (default: default),
     # so it can run next to another one.
-    # --cpus N: CPU cores to request. Hydra allows 4 cores per GPU (CpusPerTres=gpu:4); a job that
-    # asks for more stays pending forever with reason PartitionConfig.
-    partition=gpu-2h
+    # --cpus N: CPU cores to request (default 8).
+    partition=$GPU-2h
     minutes=105
     config=configs/train/default.yaml
     name=default
-    cpus=4
+    cpus=8
     while [[ $# -gt 0 ]]; do
         case "$1" in
-        --long) partition=gpu-5h minutes=285 ;;
+        --long) partition=$GPU-5h minutes=285 ;;
         --name)
             name=${2:-}
             [[ "$name" =~ ^[A-Za-z0-9_-]+$ ]] || { echo "--name needs a name of letters, digits, - or _" >&2; exit 1; }
@@ -153,7 +155,7 @@ train)
     job_name=train
     [[ "$name" == default ]] || job_name=train-$name
     out_dir=outputs/train/$name
-    workers=$((cpus > 1 ? cpus - 1 : 1))  # data-generation processes; one core for the main process
+    workers=$((cpus > 2 ? cpus - 2 : 1))  # data-generation processes; the rest is for the main process
     # Only one job per run name: two jobs on the same folder would overwrite each other's checkpoints.
     existing=$(squeue -h -u "$USER" -n "dopfn-$job_name" -o "%i (%T)" | paste -sd ' ' -)
     if [[ -n "$existing" ]]; then
@@ -176,7 +178,7 @@ status)
     while read -r id name state reason; do
         [[ "$name" == dopfn-* && "$state" == PENDING ]] || continue
         if [[ "$reason" == PartitionConfig ]]; then
-            echo "-> Job $id ($name) cannot start: its request does not fit the partition (PartitionConfig)."
+            echo "-> Job $id ($name) cannot start: this account may not use the job's partition (PartitionConfig)."
             echo "   Waiting does not help. See 'A job stays PENDING' in cluster/README.md."
         else
             echo "-> Job $id ($name) is waiting in the queue; its log appears when it starts."
