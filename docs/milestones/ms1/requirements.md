@@ -83,13 +83,15 @@ Signature: `def show(x, outfile=None, ...)` in `dopfn.viz`.
 - [x] **V2. Input is a list of data points** (items as yielded by `load_data`). Accept: test calls
   `show` on a list from `load_data`.
   Proof: `test_show_accepts_items_from_load_data`.
-- [ ] **V3. Visually pleasing image**, e.g. causal graph next to observational and interventional
+- [x] **V3. Visually pleasing image**, e.g. causal graph next to observational and interventional
   data. Accept: figures reviewed by the team and used in the report.
+  Proof: `docs/milestones/ms1/report/fig_prior_examples.png` (causal graph next to observational and interventional data). Still to do: team review and use in the report.
 - [x] **V4. Optional save.** With `outfile` set, the image is written to that path. Accept:
   `tests/test_viz.py` checks the file exists.
   Proof: `test_show_saves_multiple_samples_and_overlay`, `test_show_accepts_items_from_load_data`.
-- [ ] **V5. Extensible for overlays** (e.g. model predictions on top of data). Accept: an overlay
+- [x] **V5. Extensible for overlays** (e.g. model predictions on top of data). Accept: an overlay
   argument/hook exists and is used for at least one report figure.
+  Proof: `predictions=` argument of `show`; `docs/milestones/ms1/report/fig_predictions.png`. Still to do: use the figure in the report.
 
 ### Model prototype (owner: B)
 

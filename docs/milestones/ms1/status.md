@@ -5,6 +5,10 @@ Reference requirement IDs from `requirements.md` (e.g. M1, R3).
 
 ## Log
 
+- 2026-11-15 (B): report material in `docs/milestones/ms1/report/` (figures, LaTeX tables, index
+  with captions and key numbers), created by `scripts/make_report_material.py` (V3, V5). Chinese
+  comments in C's files translated; `.cluster-user` removed. Open: the report itself, S3 (repo is
+  public but `marvinsxtr` is not invited), S5.
 - 2026-11-15 (A and B, on the cluster): full training and evaluation done (G1, G2, M7, M8, R5, C2).
   Results in `docs/milestones/ms1/results/` (run `run2`, job 5224241 on `gpu-teaching-2h`):
   - Training: 30000 steps in 92 min on one GPU. Validation NLL 1.43 → 1.07, flat at the end; train
