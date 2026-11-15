@@ -23,7 +23,8 @@ def evaluate(estimator: CausalEstimator, datasets: Iterable[Any]) -> dict[str, f
     Each dataset has equal weight. For both targets, normalize by the range of
     interventional outcomes in that dataset. Constant-outcome datasets still
     contribute to MSE and RMSE. Zero true ATE has undefined relative error.
-    Report valid counts and 95% bootstrap intervals for the three comparison metrics.
+    Report valid counts, medians over datasets and 95% bootstrap intervals of the mean for the
+    three comparison metrics.
     """
     totals = dict.fromkeys(
         (f"{target}_{metric}" for target in ("outcome", "cate")
@@ -66,6 +67,9 @@ def evaluate(estimator: CausalEstimator, datasets: Iterable[Any]) -> dict[str, f
         if len(values) > 1:
             means = rng.choice(values, size=(2000, len(values)), replace=True).mean(axis=1)
             low, high = np.quantile(means, [0.025, 0.975])
+        # The median is robust to single datasets with a near-constant outcome, where dividing by
+        # the squared range makes the normalized error explode.
+        totals[f"{metric}_median"] = float(np.median(values)) if values else float("nan")
         totals[f"{metric}_ci95_low"] = float(low)
         totals[f"{metric}_ci95_high"] = float(high)
     return {**totals, "n_datasets": n_datasets, "n_nmse_datasets": n_normalized,

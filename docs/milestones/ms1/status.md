@@ -5,6 +5,13 @@ Reference requirement IDs from `requirements.md` (e.g. M1, R3).
 
 ## Log
 
+- 2026-11-15 (B, branch `b/model`, taking over C's part): C's branch `part-c/evaluation` (baselines,
+  metrics, harness, `show`, `scripts/evaluate.py`) merged. `evaluate.py` fixed to use the real
+  `load_data` interface (it passed `with_graph`, which does not exist), with `--out-dir`, `--device`
+  and a summary table; the harness also reports medians over datasets. Cluster: course accounts must
+  use the `gpu-teaching-*` partitions; `cluster/hydra.sh evaluate` added. Checked locally with a small
+  CPU-trained model on 256 held-out prior datasets and all six case studies. Next: full training
+  and evaluation on the cluster (G1, G2, M7, M8, R5, C2), then tick the boxes in `requirements.md`.
 - 2026-11-14 (B, branch `b/model`): Model, bar distribution, NLL loss, adapter, training loop,
   `scripts/train.py`, `Regressor` and Hydra job files (`cluster/`) implemented; M1–M6 and R1–R4 done
   (tests in `tests/test_model.py`, `tests/test_training.py`). Proposals for D2, D3, D4 in

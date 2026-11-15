@@ -20,6 +20,17 @@ from dopfn.viz import show_metrics
 PLOT_NAME = "case_study_metrics.png"
 
 
+def print_summary(results: dict[str, dict[str, dict[str, float | None]]]) -> None:
+    """Print normalized MSE (mean and median over datasets) per dataset and model; lower is better."""
+    columns = ("outcome_nmse", "outcome_nmse_median", "cate_nmse", "cate_nmse_median")
+    print(f"\n{'dataset':<24}{'model':<28}" + "".join(f"{c:>22}" for c in columns))
+    for dataset_name, models in results.items():
+        for name, scores in models.items():
+            cells = (scores.get(c) for c in columns)
+            print(f"{dataset_name:<24}{name:<28}"
+                  + "".join(f"{'nan' if v is None else format(v, '.4f'):>22}" for v in cells))
+
+
 def main() -> None:
     """Run the requested datasets and save a score table as JSON."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -109,6 +120,7 @@ def main() -> None:
     outfile.write_text(report + "\n")
     print(report)
     print(f"Saved {outfile}")
+    print_summary(results)
 
 
 if __name__ == "__main__":
